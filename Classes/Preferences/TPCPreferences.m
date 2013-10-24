@@ -1560,28 +1560,6 @@ static NSMutableArray *excludeKeywords = nil;
 	 from building Textual for free… so yeah! :)
 	 */
 
-#ifdef TXBundleBuiltWithoutCodeSigning
-	[self displayWarningForNonCodeSignedBundles];
-}
-
-+ (void)displayWarningForNonCodeSignedBundles
-{
-	BOOL question = [TLOPopupPrompts dialogWindowWithQuestion:@"It appears that this copy of Textual was built without code signing. Please be aware, as a result of building Textual without code signing, many instabilities (also known as \"bugs\") have been introduced into the application.\n\nLogging to disk will not work when the application is not code signed. Additionally, configuration files written by the Mac App Store version of Textual cannot be accessed when code signing is disabled. Passwords stored in the keychain may also not be available.\n\nWhile it is within your right to build Textual without code signing; it is recommended to use the version of Textual on the Mac App Store to guarantee the best available experience."
-														title:@"Application Built Without Code Signing"
-												defaultButton:@"OK"
-											  alternateButton:@"Go to Store"
-											   suppressionKey:nil
-											  suppressionText:nil];
-
-	if (question == NO) {
-		[TLOpenLink openWithString:@"http://www.textualapp.com/"];
-
-		self.masterController.skipTerminateSave = YES;
-		self.masterController.terminating = YES;
-
-		[NSApp terminate:nil];
-	}
-#endif
 }
 
 #pragma mark -

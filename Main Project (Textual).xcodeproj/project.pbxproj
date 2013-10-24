@@ -3648,6 +3648,7 @@
 			buildSettings = {
 				COPY_PHASE_STRIP = NO;
 				INFOPLIST_FILE = Resources/Info.plist;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = Textual;
 				STRIPFLAGS = "-S";
 				STRIP_STYLE = "non-global";
