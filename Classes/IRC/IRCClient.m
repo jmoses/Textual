@@ -2633,49 +2633,95 @@
 
 - (NSString *)formatNick:(NSString *)nick channel:(IRCChannel *)channel formatOverride:(NSString *)forcedFormat
 {
+	/* Validate input. */
 	NSObjectIsEmptyAssertReturn(nick, nil);
 
 	PointerIsEmptyAssertReturn(channel, nil);
 
+	/* Define default formats. */
 	NSString *nmformat = [TPCPreferences themeNicknameFormat];
 
 	NSString *override = self.masterController.themeController.customSettings.nicknameFormat;
 
+	/* Use theme based format? */
 	if (NSObjectIsNotEmpty(override)) {
 		nmformat = override;
 	}
 
+	/* Use default format? */
 	if (NSObjectIsEmpty(nmformat)) {
 		nmformat = TXLogLineUndefinedNicknameFormat;
 	}
 
+	/* Use a forced format? */
 	if (NSObjectIsNotEmpty(forcedFormat)) {
 		nmformat = forcedFormat;
 	}
 
-	if ([nmformat contains:@"%n"]) {
-		nmformat = [nmformat stringByReplacingOccurrencesOfString:@"%n" withString:nick];
-	}
+	/* Find mark character. */
+	NSString *mark = NSStringEmptyPlaceholder;
 
-	if ([nmformat contains:@"%@"]) {
-		if (channel && channel.isChannel) {
-			IRCUser *m = [channel findMember:nick];
+	if (channel && channel.isChannel) {
+		IRCUser *m = [channel findMember:nick];
 
-			if (m) {
-				if (NSObjectIsEmpty(m.mark)) {
-					nmformat = [nmformat stringByReplacingOccurrencesOfString:@"%@" withString:NSStringEmptyPlaceholder];
-				} else {
-					nmformat = [nmformat stringByReplacingOccurrencesOfString:@"%@" withString:m.mark];
-				}
-			} else {
-				nmformat = [nmformat stringByReplacingOccurrencesOfString:@"%@" withString:NSStringEmptyPlaceholder];
-			}
-		} else {
-			nmformat = [nmformat stringByReplacingOccurrencesOfString:@"%@" withString:NSStringEmptyPlaceholder];
+		if (m && NSObjectIsNotEmpty(m.mark)) {
+			mark = m.mark;
 		}
 	}
 
-	return nmformat;
+	/* Begin parsing format string. */
+	NSString *formatMarker = @"%";
+	NSString *chunk = nil;
+
+	NSScanner *scanner = [NSScanner scannerWithString:nmformat];
+
+	[scanner setCharactersToBeSkipped:nil];
+
+	NSMutableString *buffer = [NSMutableString new];
+
+	/* Loop for actual scanner. */
+	while ([scanner isAtEnd] == NO) {
+		/* Read any static characters into buffer. */
+		if ([scanner scanUpToString:formatMarker intoString:&chunk] == YES) {
+			[buffer appendString:chunk];
+		}
+
+		/* Eat the format marker. */
+		if ([scanner scanString:formatMarker intoString:nil] == NO) {
+			break;
+		}
+
+		/* Read width specifier (may be empty). */
+		NSInteger width = 0;
+
+		[scanner scanInteger:&width];
+
+		/* Read the output type marker. */
+		NSString *oValue = nil;
+
+		if ([scanner scanString:@"@" intoString:nil] == YES) {
+			oValue = mark; // User mode mark.
+		} else if ([scanner scanString:@"n" intoString:nil] == YES) {
+			oValue = nick; // Actual nickname.
+		} else if ([scanner scanString:formatMarker intoString:nil] == YES) {
+			oValue = formatMarker; // Format marker.
+		}
+
+		if (PointerIsNotEmpty(oValue)) {
+			/* Check math and perform final append. */
+			if (width < 0 && ABS(width) > oValue.length) {
+				[buffer appendString:[@"" stringByPaddingToLength:(ABS(width) - oValue.length) withString:@" " startingAtIndex:0]];
+			}
+
+			[buffer appendString:oValue];
+
+			if (width > 0 && width > oValue.length) {
+				[buffer appendString:[@"" stringByPaddingToLength:(width - oValue.length) withString:@" " startingAtIndex:0]];
+			}
+		}
+	}
+
+	return [NSString stringWithString:buffer];
 }
 
 - (void)printAndLog:(TVCLogLine *)line completionBlock:(void(^)(BOOL highlighted))completionBlock
