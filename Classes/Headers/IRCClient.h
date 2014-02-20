@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -53,6 +53,7 @@ typedef enum IRCDisconnectMode : NSInteger {
 	IRCDisconnectTrialPeriodMode,
 	IRCDisconnectComputerSleepMode,
 	IRCDisconnectBadSSLCertificateMode,
+	IRCDisconnectReachabilityChangeMode,
 	IRCDisconnectServerRedirectMode,
 } IRCDisconnectMode;
 
@@ -103,12 +104,18 @@ typedef enum IRCDisconnectMode : NSInteger {
 @property (nonatomic, assign) NSTimeInterval lastMessageReceived;
 @property (nonatomic, strong) NSString *serverRedirectAddressTemporaryStore; // Temporary store for RPL_BOUNCE (010) redirects.
 @property (nonatomic, assign) NSInteger serverRedirectPortTemporaryStore; // Temporary store for RPL_BOUNCE (010) redirects.
-@property (nonatomic, assign) BOOL isHostReachable;
 
 - (void)setup:(id)seed;
+
 - (void)updateConfig:(IRCClientConfig *)seed;
+- (void)updateConfig:(IRCClientConfig *)seed fromTheCloud:(BOOL)isCloudUpdate withSelectionUpdate:(BOOL)reloadSelection;
+
 - (IRCClientConfig *)storedConfig;
+
 - (NSMutableDictionary *)dictionaryValue;
+- (NSMutableDictionary *)dictionaryValue:(BOOL)isCloudDictionary;
+
+- (NSString *)uniqueIdentifier;
 
 - (NSString *)networkName; // Only returns the actual network name.
 - (NSString *)altNetworkName; // Will return the configured name if the actual name is not available.
@@ -117,9 +124,13 @@ typedef enum IRCDisconnectMode : NSInteger {
 - (NSString *)localNickname;
 - (NSString *)localHostmask;
 
+- (void)reachabilityChanged:(BOOL)reachable;
+
 - (void)autoConnect:(NSInteger)delay afterWakeUp:(BOOL)afterWakeUp;
 
-- (void)terminate;
+- (void)prepareForApplicationTermination;
+- (void)prepareForPermanentDestruction;
+
 - (void)closeDialogs;
 - (void)preferencesChanged;
 
@@ -134,6 +145,8 @@ typedef enum IRCDisconnectMode : NSInteger {
 - (void)decryptIncomingMessage:(NSString **)message channel:(IRCChannel *)channel;
 
 - (BOOL)outputRuleMatchedInMessage:(NSString *)raw inChannel:(IRCChannel *)chan withLineType:(TVCLogLineType)type;
+
+- (void)sendFile:(NSString *)nickname port:(NSInteger)port filename:(NSString *)filename filesize:(TXFSLongInt)totalFilesize token:(NSString *)transferToken;
 
 - (void)connect;
 - (void)connect:(IRCConnectMode)mode;
@@ -199,6 +212,8 @@ typedef enum IRCDisconnectMode : NSInteger {
 - (BOOL)notifyEvent:(TXNotificationType)type lineType:(TVCLogLineType)ltype;
 - (BOOL)notifyEvent:(TXNotificationType)type lineType:(TVCLogLineType)ltype target:(IRCChannel *)target nick:(NSString *)nick text:(NSString *)text;
 - (BOOL)notifyText:(TXNotificationType)type lineType:(TVCLogLineType)ltype target:(IRCChannel *)target nick:(NSString *)nick text:(NSString *)text;
+
+- (void)notifyFileTransfer:(TXNotificationType)type nickname:(NSString *)nickname filename:(NSString *)filename filesize:(TXFSLongInt)totalFilesize;
 
 - (void)populateISONTrackedUsersList:(NSMutableArray *)ignores;
 

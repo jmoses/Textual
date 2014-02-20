@@ -1,4 +1,4 @@
-/* ********************************************************************* 
+/* *********************************************************************
        _____        _               _    ___ ____   ____
       |_   _|___  _| |_ _   _  __ _| |  |_ _|  _ \ / ___|
        | |/ _ \ \/ / __| | | |/ _` | |   | || |_) | |
@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -41,20 +41,23 @@
 @interface TDCAddressBookSheet : TDCSheetBase
 @property (nonatomic, assign) BOOL newItem;
 @property (nonatomic, strong) IRCAddressBook *ignore;
-@property (nonatomic, nweak) NSButton *ignoreCTCPCheck;
-@property (nonatomic, nweak) NSButton *ignoreJPQECheck;
-@property (nonatomic, nweak) NSButton *ignoreNoticesCheck;
-@property (nonatomic, nweak) NSButton *ignorePrivateHighlightsCheck;
-@property (nonatomic, nweak) NSButton *ignorePrivateMessagesCheck;
-@property (nonatomic, nweak) NSButton *ignorePublicHighlightsCheck;
-@property (nonatomic, nweak) NSButton *ignorePublicMessagesCheck;
-@property (nonatomic, nweak) NSButton *hideMessagesContainingMatchCheck;
-@property (nonatomic, nweak) NSButton *hideInMemberListCheck;
-@property (nonatomic, nweak) NSButton *notifyJoinsCheck;
-@property (nonatomic, nweak) NSTextField *hostmaskField;
-@property (nonatomic, nweak) NSTextField *nicknameField;
-@property (nonatomic, uweak) NSWindow *ignoreView;
-@property (nonatomic, uweak) NSWindow *notifyView;
+@property (nonatomic, nweak) IBOutlet NSButton *hideInMemberListCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *hideMessagesContainingMatchCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignoreCTCPCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignoreJPQECheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignoreNoticesCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignorePrivateHighlightsCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignorePrivateMessagesCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignorePublicHighlightsCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignorePublicMessagesCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignoreFileTransferRequestsCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *notifyJoinsCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *ignoreEntrySaveButton;
+@property (nonatomic, nweak) IBOutlet NSButton *userTrackingEntrySaveButton;
+@property (nonatomic, nweak) IBOutlet TVCTextFieldWithValueValidation *ignoreEntryHostmaskField;
+@property (nonatomic, nweak) IBOutlet TVCTextFieldWithValueValidation *userTrackingEntryNicknameField;
+@property (nonatomic, strong) IBOutlet NSWindow *ignoreView;
+@property (nonatomic, strong) IBOutlet NSWindow *notifyView;
 
 - (void)start;
 @end

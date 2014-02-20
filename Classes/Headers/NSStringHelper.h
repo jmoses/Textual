@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -42,7 +42,6 @@
 #define TXStringIsBase10Numeric(c)					('0' <= (c) && (c) <= '9')
 #define TXStringIsAlphabeticNumeric(c)				(TXStringIsAlphabetic(c) || TXStringIsBase10Numeric(c))
 #define TXStringIsWordLetter(c)						(TXStringIsAlphabeticNumeric(c) || (c) == '_')
-#define TXStringIsIRCColor(c,f)						([NSNumber compareIRCColor:c against:f])
 
 #define NSStringEmptyPlaceholder			@""
 #define NSStringNewlinePlaceholder			@"\n"
@@ -56,6 +55,9 @@
 #pragma mark 
 #pragma mark String Helpers
 
+/* Providing an IRCClient pointer to many of these methods can
+ help provide server specific configuration validation. */
+
 @interface NSString (TXStringHelper)
 + (id)stringWithBytes:(const void *)bytes length:(NSUInteger)length encoding:(NSStringEncoding)encoding;
 + (id)stringWithData:(NSData *)data encoding:(NSStringEncoding)encoding;
@@ -68,29 +70,49 @@
 
 + (NSDictionary *)supportedStringEncodingsWithTitle:(BOOL)favorUTF8;
 
-- (NSString *)safeSubstringAfterIndex:(NSInteger)anIndex;
-- (NSString *)safeSubstringBeforeIndex:(NSInteger)anIndex;
+- (NSString *)substringAfterIndex:(NSInteger)anIndex;
+- (NSString *)substringBeforeIndex:(NSInteger)anIndex;
+
 - (NSString *)safeSubstringFromIndex:(NSInteger)anIndex;
 - (NSString *)safeSubstringToIndex:(NSInteger)anIndex;
 - (NSString *)safeSubstringWithRange:(NSRange)range;
 
 - (NSString *)stringCharacterAtIndex:(NSInteger)anIndex;
 
+- (NSString *)stringByDeletingPreifx:(NSString *)prefix;
+
+- (NSString *)stringByDeletingAllCharactersInSet:(NSString *)validChars;
+- (NSString *)stringByDeletingAllCharactersNotInSet:(NSString *)validChars;
+
 - (NSString *)channelNameToken;
+- (NSString *)channelNameTokenByTrimmingAllPrefixes:(IRCClient *)client;
+
+- (NSString *)sha1;
 
 - (NSString *)nicknameFromHostmask;
 - (NSString *)usernameFromHostmask;
 - (NSString *)addressFromHostmask;
-- (NSString *)hostmaskFromRawString;
+
+- (NSString *)nicknameFromHostmask:(IRCClient *)client;
+- (NSString *)usernameFromHostmask:(IRCClient *)client;
+- (NSString *)addressFromHostmask:(IRCClient *)client;
+
+/* Returns NO on invalid host. */
+- (BOOL)hostmaskComponents:(NSString **)nickname username:(NSString **)username address:(NSString **)address client:(IRCClient *)client;
+/* Character set matching will call isNicknameMatchingDefinedCharacterSet instead of isNickname when client is not specified. It is defauled to NO in above method. */
+- (BOOL)hostmaskComponents:(NSString **)nickname username:(NSString **)username address:(NSString **)address client:(IRCClient *)client usingCharacterSetMatching:(BOOL)matchUsingCharacterSet;
 
 - (NSString *)cleanedServerHostmask;
+
+- (NSInteger)compareWithWord:(NSString *)stringB matchGain:(NSInteger)gain missingCost:(NSInteger)cost;
 
 - (BOOL)isEqualIgnoringCase:(NSString *)other;
 
 - (BOOL)contains:(NSString *)str;
 - (BOOL)containsIgnoringCase:(NSString *)str;
 
-- (BOOL)onlyContainersCharacters:(NSString *)validChars;
+- (BOOL)containsCharacters:(NSString *)validChars;
+- (BOOL)onlyContainsCharacters:(NSString *)validChars;
 
 - (NSInteger)stringPosition:(NSString *)needle;
 - (NSInteger)stringPositionIgnoringCase:(NSString *)needle;
@@ -122,9 +144,18 @@
 - (NSString *)decodeURIFragement;
 
 - (BOOL)isHostmask;
-- (BOOL)isNickname;
+- (BOOL)isHostmask:(IRCClient *)client;
+- (BOOL)isHostmaskMatchingDefinedCharacterSet; // Validates against IRCNicknameValidCharacters.
+
+- (BOOL)isIPv4Address;
 - (BOOL)isIPv6Address;
+- (BOOL)isIPAddress;
+
 - (BOOL)isModeChannelName;
+
+- (BOOL)isNickname;
+- (BOOL)isNickname:(IRCClient *)client; // Client to parse CHARSET or CASEMAPPING from.
+- (BOOL)isNicknameMatchingDefinedCharacterSet; // Validates against IRCNicknameValidCharacters.
 
 - (BOOL)isChannelName;
 - (BOOL)isChannelName:(IRCClient *)client; // Client to parse CHANTYPES from.
@@ -138,6 +169,14 @@
 - (CGFloat)pixelHeightInWidth:(NSInteger)width forcedFont:(NSFont *)font;
 
 - (NSString *)base64EncodingWithLineLength:(NSInteger)lineLength;
+
+- (NSString *)string; // Returns self.
+
+/* This call is used internally by getToken and getTokenIncludingQuotes. 
+ Call that instead. It is declared in header so that it can be used for 
+ these calls internally between categories. */
++ (id)getTokenFromFirstQuoteGroup:(id)stringValue returnedDeletionRange:(NSRange *)quoteRange;
++ (id)getTokenFromFirstWhitespaceGroup:(id)stringValue returnedDeletionRange:(NSRange *)whitespaceRange;
 @end
 
 #pragma mark 
@@ -166,6 +205,7 @@
 
 @interface NSMutableString (TXMutableStringHelper)
 - (NSString *)getToken;
+- (NSString *)getTokenIncludingQuotes;
 
 - (void)safeDeleteCharactersInRange:(NSRange)range;
 @end
@@ -205,4 +245,5 @@
 + (NSMutableAttributedString *)mutableStringWithBase:(NSString *)base attributes:(NSDictionary *)baseAttributes;
 
 - (NSAttributedString *)getToken;
+- (NSAttributedString *)getTokenIncludingQuotes;
 @end

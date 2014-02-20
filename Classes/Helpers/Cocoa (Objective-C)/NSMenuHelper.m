@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -42,18 +42,12 @@
 
 @implementation NSMenuItem (TXMenuItemHelper)
 
-+ (id)menuItemWithTitle:(NSString *)aString
-						   target:(id)aTarget
-						   action:(SEL)aSelector
++ (id)menuItemWithTitle:(NSString *)aString target:(id)aTarget action:(SEL)aSelector
 {
 	return [self menuItemWithTitle:aString target:aTarget action:aSelector keyEquivalent:NSStringEmptyPlaceholder keyEquivalentMask:0];
 }
 
-+ (id)menuItemWithTitle:(NSString *)aString
-				 target:(id)aTarget
-				 action:(SEL)aSelector
-		  keyEquivalent:(NSString *)charCode
-	  keyEquivalentMask:(NSUInteger)mask
++ (id)menuItemWithTitle:(NSString *)aString target:(id)aTarget action:(SEL)aSelector keyEquivalent:(NSString *)charCode keyEquivalentMask:(NSUInteger)mask
 {
 	id menuItem = [[self alloc] initWithTitle:aString action:aSelector keyEquivalent:charCode];
 
@@ -65,5 +59,5 @@
 
 @end
 
-@implementation TXSpecialNSMenuItemHelper
+@implementation NSMenuExtendedHelperItem
 @end

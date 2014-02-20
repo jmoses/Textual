@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -42,30 +42,66 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDCAddressBookSheet" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCAddressBookSheet" owner:self topLevelObjects:nil];
+
+		[self buildTextFieldValidationBlocks];
 	}
 
 	return self;
+}
+
+- (void)buildTextFieldValidationBlocks
+{
+	/* Define host field for ignore entries. */
+	[self.ignoreEntryHostmaskField setStringValueIsInvalidOnEmpty:YES];
+	[self.ignoreEntryHostmaskField setStringValueUsesOnlyFirstToken:YES];
+	[self.ignoreEntryHostmaskField setTextDidChangeCallback:self];
+
+	[self.ignoreEntryHostmaskField setValidationBlock:^BOOL(NSString *currentValue) {
+		NSString *valueWithoutWildcard = [currentValue stringByReplacingOccurrencesOfString:@"*" withString:@"-"];
+
+		return ([valueWithoutWildcard isNicknameMatchingDefinedCharacterSet] ||
+				[valueWithoutWildcard isHostmaskMatchingDefinedCharacterSet]);
+	}];
+
+	/* Define nickname field for user tracking. */
+	[self.userTrackingEntryNicknameField setStringValueIsInvalidOnEmpty:YES];
+	[self.userTrackingEntryNicknameField setStringValueUsesOnlyFirstToken:YES];
+	[self.userTrackingEntryNicknameField setTextDidChangeCallback:self];
+
+	[self.userTrackingEntryNicknameField setValidationBlock:^BOOL(NSString *currentValue) {
+		return [currentValue isNicknameMatchingDefinedCharacterSet];
+	}];
+}
+
+- (void)validatedTextFieldTextDidChange:(id)sender
+{
+	/* Enable or disable OK button based on validation. */
+	if (self.ignore.entryType == IRCAddressBookIgnoreEntryType) {
+		[self.ignoreEntrySaveButton setEnabled:[self.ignoreEntryHostmaskField valueIsValid]];
+	} else {
+		[self.userTrackingEntrySaveButton setEnabled:[self.userTrackingEntryNicknameField valueIsValid]];
+	}
 }
 
 - (void)start
 {
 	if (self.ignore.entryType == IRCAddressBookIgnoreEntryType) {
 		self.sheet = self.ignoreView;
-		
-		if (NSObjectIsNotEmpty(self.ignore.hostmask)) {
-			[self.hostmaskField setStringValue:self.ignore.hostmask];
+
+		if (self.ignore.hostmask) {
+			[self.ignoreEntryHostmaskField setStringValue:self.ignore.hostmask];
 		}
 
-		[self.window makeFirstResponder:self.hostmaskField];
+		[self.sheet makeFirstResponder:self.ignoreEntryHostmaskField];
 	} else {
 		self.sheet = self.notifyView;
-		
-		if (NSObjectIsNotEmpty(self.ignore.hostmask)) {
-			[self.nicknameField setStringValue:self.ignore.hostmask];
+
+		if (self.ignore.hostmask) {
+			[self.userTrackingEntryNicknameField setStringValue:self.ignore.hostmask];
 		}
 
-		[self.window makeFirstResponder:self.nicknameField];
+		[self.sheet makeFirstResponder:self.userTrackingEntryNicknameField];
 	}
 
 	[self.notifyJoinsCheck					setState:self.ignore.notifyJoins];
@@ -77,6 +113,7 @@
 	[self.ignorePrivateMessagesCheck		setState:self.ignore.ignorePrivateMessages];
 	[self.ignorePublicHighlightsCheck		setState:self.ignore.ignorePublicHighlights];
 	[self.ignorePublicMessagesCheck			setState:self.ignore.ignorePublicMessages];
+	[self.ignoreFileTransferRequestsCheck	setState:self.ignore.ignoreFileTransferRequests];
 
 	[self.hideInMemberListCheck				setState:self.ignore.hideInMemberList];
 	[self.hideMessagesContainingMatchCheck	setState:self.ignore.hideMessagesContainingMatch];
@@ -87,9 +124,9 @@
 - (void)ok:(id)sender
 {
 	if (self.ignore.entryType == IRCAddressBookIgnoreEntryType) {
-		self.ignore.hostmask = self.hostmaskField.firstTokenStringValue;
+		self.ignore.hostmask = [self.ignoreEntryHostmaskField value];
 	} else {
-		self.ignore.hostmask = self.nicknameField.firstTokenStringValue;
+		self.ignore.hostmask = [self.userTrackingEntryNicknameField value];
 	}
 
 	self.ignore.notifyJoins					= [self.notifyJoinsCheck state];
@@ -101,6 +138,7 @@
 	self.ignore.ignorePrivateMessages		= [self.ignorePrivateMessagesCheck state];
 	self.ignore.ignorePublicHighlights		= [self.ignorePublicHighlightsCheck state];
 	self.ignore.ignorePublicMessages		= [self.ignorePublicMessagesCheck state];
+	self.ignore.ignoreFileTransferRequests	= [self.ignoreFileTransferRequestsCheck state];
 
 	self.ignore.hideInMemberList			= [self.hideInMemberListCheck state];
 	self.ignore.hideMessagesContainingMatch = [self.hideMessagesContainingMatchCheck state];

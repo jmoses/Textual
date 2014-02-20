@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDCAboutPanel" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCAboutPanel" owner:self topLevelObjects:nil];
 	}
 
 	return self;
@@ -54,8 +54,6 @@
 	
 	[self.versionInfoField setStringValue:TXTFLS(@"AboutWindowBuildNumber", bundleVersion)];
 
-	[self displayAcknowledgments:nil];
-
 	[self.window restoreWindowStateForClass:self.class];
 	
 	[self.window makeKeyAndOrderFront:nil];
@@ -63,16 +61,9 @@
 
 - (void)displayAcknowledgments:(id)sender
 {
-	NSString *acknowledgmentsPath =	[[TPCPreferences applicationResourcesFolderPath] stringByAppendingPathComponent:@"/Documentation/Acknowledgments.rtfd"];
+	NSString *acknowledgmentsPath = [RZMainBundle() pathForResource:@"Acknowledgments" ofType:@"pdf" inDirectory:@"Documentation"];
 
-	[self.documentView readRTFDFromFile:acknowledgmentsPath];
-}
-
-- (void)displayContributors:(id)sender
-{
-	NSString *contributorsPath = [[TPCPreferences applicationResourcesFolderPath] stringByAppendingPathComponent:@"/Documentation/Contributors.rtfd"];
-
-	[self.documentView readRTFDFromFile:contributorsPath];
+	[RZWorkspace() openFile:acknowledgmentsPath];
 }
 
 - (void)windowWillClose:(NSNotification *)note

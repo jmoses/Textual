@@ -222,7 +222,6 @@
 			buildSettings = {
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = BlowfishCommandLine;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Debug;
 		};
@@ -232,7 +231,6 @@
 			buildSettings = {
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = BlowfishCommandLine;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Release;
 		};

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -36,6 +36,8 @@
  *********************************************************************** */
 
 #import "TextualApplication.h"
+
+#define _requestUserAgent					@"Textual/1.0 (+http://www.codeux.com/textual/wiki/Inline-Media-Scanner-User-Agent.wiki)"
 
 #define _imageLoaderMaxRequestTime			30
 
@@ -89,6 +91,8 @@
 															   cachePolicy:NSURLRequestReloadIgnoringCacheData
 														   timeoutInterval:_imageLoaderMaxRequestTime];
 
+	[baseRequest setValue:_requestUserAgent forHTTPHeaderField:@"User-Agent"];
+
 	/* This is stored in a local variable so that a user changing something during a load in
 	 progess, it does not fuck up any of the already existing requests. */
 	self.isInRequestWithCheckForMaximumHeight = ([TPCPreferences inlineImagesMaxHeight] > 0);
@@ -123,7 +127,7 @@
 	NSString *imageContentType = [headers stringForKey:@"Content-Type"];
 
 	/* Check size. */
-	if (sizeInBytes > [TPCPreferences inlineImagesMaxFilesize] || sizeInBytes < 10) {
+	if (sizeInBytes > [TPCPreferences inlineImagesMaxFilesize]) {
 		return NO;
 	}
 
@@ -144,14 +148,24 @@
 
     if (isValidResponse) {
 		if (self.isInRequestWithCheckForMaximumHeight) { // Are we checking the actual image size?
-			PointerIsEmptyAssert(self.responseData); // I hope we had some data…
-
+			if (PointerIsEmpty(self.responseData)) {
+				return [self destroyConnectionRequest]; // Destroy and return for bad input.
+			}
+			
 			CGImageSourceRef imageSource = CGImageSourceCreateWithData ((__bridge CFDataRef)self.responseData, NULL);
-
-			PointerIsEmptyAssert(imageSource);
-
+			
+			if (PointerIsEmpty(imageSource)) {
+				return [self destroyConnectionRequest]; // Destroy and return for bad input.
+			}
+			
 			CFDictionaryRef properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, NULL);
-
+		
+			if (PointerIsEmpty(properties)) {
+				CFRelease(imageSource);
+				
+				return [self destroyConnectionRequest]; // Destroy and return for bad input.
+			}
+			
 			NSNumber *orientation = CFDictionaryGetValue(properties, kCGImagePropertyOrientation);
 
 			NSNumber *width = CFDictionaryGetValue(properties, kCGImagePropertyPixelWidth);
@@ -161,19 +175,21 @@
 			CFRelease(properties);
 
 			if ([height integerValue] > [TPCPreferences inlineImagesMaxHeight] || [width integerValue] > _imageMaximumImageWidth) { // So what's up with the size?
-				[self destroyConnectionRequest]; // Destroy local vars.
-
-				return; // Image is too big, don't do crap with it.
+				return [self destroyConnectionRequest]; // Destroy local vars.
 			}
 
 			/* Post the image. */
-			[self.requestOwner imageLoaderFinishedLoadingForImageWithID:self.requestImageUniqeID orientation:[orientation integerValue]];
+			if (self.requestOwner) {
+				[self.requestOwner imageLoaderFinishedLoadingForImageWithID:self.requestImageUniqeID orientation:[orientation integerValue]];
+			}
 
 			return;
 		}
 
 		/* Send the information off. We will validate the information higher up. */
-		[self.requestOwner imageLoaderFinishedLoadingForImageWithID:self.requestImageUniqeID orientation:(-1)];
+		if (self.requestOwner) {
+			[self.requestOwner imageLoaderFinishedLoadingForImageWithID:self.requestImageUniqeID orientation:(-1)];
+		}
 	}
 
 	/* Cleaning. */
@@ -193,6 +209,16 @@
 {
 	if (self.isInRequestWithCheckForMaximumHeight) {
 		[self.responseData appendData:data]; // We only care about the data if we are going to be checking its size.
+
+		/* If the Content-Length header was not available, then we
+		 still go ahead and check the downloaded data length here. */
+		if ([self.responseData length] > [TPCPreferences inlineImagesMaxFilesize]) {
+			LogToConsole(@"Inline image exceeds maximum file length.");
+			
+			[self destroyConnectionRequest];
+			
+			return;
+		}
 	}
 }
 

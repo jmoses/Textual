@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -46,14 +46,43 @@
 	return @[@"image/gif", @"image/jpeg", @"image/png", @"image/svg+xml", @"image/tiff", @"image/x-ms-bmp"];
 }
 
+/* Takes URL, places it on a pasteboard, and hands off to a WebView instance.
+ Doing so is a dead simple hack to convert IDN domains to ASCII. */
++ (NSURL *)URLFromWebViewPasteboard:(NSString *)baseURL
+{
+	NSPasteboard *pasteboard = [NSPasteboard pasteboardWithUniqueName];
+	
+	[pasteboard setStringContent:baseURL];
+
+	NSURL *u = [WebView URLFromPasteboard:pasteboard];
+
+	/* For some users, u returns nil for valid URLs. There is no
+	 explanation for this so for now we fallback to classic NSURL
+	 if it does do this to hack around a fix. */
+	if (u == nil) {
+		u = [NSURL URLWithString:baseURL];
+	}
+
+	return u;
+}
+
 + (NSString *)imageURLFromBase:(NSString *)url
 {
-	NSURL *u = [NSURL URLWithString:[url encodeURIFragment]];
+	/* Convert URL. */
+	NSURL *u = [TVCImageURLParser URLFromWebViewPasteboard:url];
 
-	NSString *scheme = u.scheme;
+	NSString *scheme = [u scheme];
 	
-	NSString *host = [u.host lowercaseString];
-	NSString *path = [u.path encodeURIFragment];
+	NSString *host = [[u host] lowercaseString];
+
+	NSString *path = [[u path] encodeURIFragment];
+	NSString *query = [[u query] encodeURIFragment];
+
+	NSString *lowercasePath = [path lowercaseString];
+    
+    if (query) {
+        path = [[path stringByAppendingString:@"?"] stringByAppendingString:query];
+    }
 
 	if ([scheme isEqualToString:@"file"]) {
 		// If the file is a local file (file:// scheme), then let us ignore it.
@@ -62,18 +91,21 @@
 		return nil;
 	}
 
-	NSString *plguinResult = [RZPluginManager() processInlineMediaContentURL:url];
+	NSString *plguinResult = [THOPluginManagerSharedInstance() processInlineMediaContentURL:[u absoluteString]];
 
-	if (NSObjectIsNotEmpty(plguinResult)) {
+	if (plguinResult) {
 		return plguinResult;
 	}
 
 	BOOL hadExtension = NO;
 
-	if ([path hasSuffix:@".jpg"] || [path hasSuffix:@".jpeg"] ||
-		[path hasSuffix:@".png"] || [path hasSuffix:@".gif"] ||
-		[path hasSuffix:@".tif"] || [path hasSuffix:@".tiff"] ||
-		[path hasSuffix:@".bmp"])
+	if ([lowercasePath hasSuffix:@".jpg"]	||
+		[lowercasePath hasSuffix:@".jpeg"]	||
+		[lowercasePath hasSuffix:@".png"]	||
+		[lowercasePath hasSuffix:@".gif"]	||
+		[lowercasePath hasSuffix:@".tif"]	||
+		[lowercasePath hasSuffix:@".tiff"]	||
+		[lowercasePath hasSuffix:@".bmp"])
 	{
 		hadExtension = YES;
 
@@ -84,7 +116,7 @@
         } else if ([host hasSuffix:@"dropbox.com"]) {
 			// Continue to processing…
 		} else {
-			return url;
+			return [u absoluteString];
 		}
 	}
 
@@ -229,7 +261,7 @@
 		if ([path hasPrefix:@"/"] && path.length == 13) {
 			NSString *s = [path safeSubstringFromIndex:1];
 
-			if ([s onlyContainersCharacters:TXWesternAlphabetIncludingUnderscoreDashCharacaterSet]) {
+			if ([s onlyContainsCharacters:TXWesternAlphabetIncludingUnderscoreDashCharacaterSet]) {
 				/* This site does both http and https. */
 
 				return [NSString stringWithFormat:@"%@://mediacru.sh/%@.png", scheme, s];
@@ -330,6 +362,10 @@
 		if ([s isAlphabeticNumericOnly] && s.length == 12) {
 			return [NSString stringWithFormat:@"http://cl.ly%@/content", path];
 		}
+	}
+
+	if ([TPCPreferences inlineImagesDownloadsAllIgnoringCommonPatterns]) {
+		return [u absoluteString];
 	}
 
 	return nil;

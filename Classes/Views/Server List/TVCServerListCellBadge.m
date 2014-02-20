@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -82,8 +82,16 @@
 
 	NSInteger channelTreeUnreadCount = channel.treeUnreadCount;
 	NSInteger nicknameHighlightCount = channel.nicknameHighlightCount;
-
+	
 	BOOL isHighlight = (nicknameHighlightCount >= 1);
+	
+	if (channel.config.showTreeBadgeCount == NO) {
+		if (isHighlight) {
+			channelTreeUnreadCount = nicknameHighlightCount;
+		} else {
+			return nil;
+		}
+	}
 
 	/* Begin draw if we want to. */
 	if (channelTreeUnreadCount >= 1 && drawMessageBadge) {

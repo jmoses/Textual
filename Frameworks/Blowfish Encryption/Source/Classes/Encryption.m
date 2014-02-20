@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.pdf and Acknowledgements.pdf
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -53,8 +53,15 @@
 
 + (NSString *)decodeData:(NSString *)input key:(NSString *)phrase encoding:(NSStringEncoding)local
 {
-	if ([input hasPrefix:@"+OK "] && [input length] >= 5) {
-		input = [input substringFromIndex:4];
+	BOOL hasOKPrefix = [input hasPrefix:@"+OK "];
+	BOOL hasMCPSPrefix = [input hasPrefix:@"mcps "];
+	
+	if ((hasOKPrefix || hasMCPSPrefix) && [input length] >= 5) {
+		if (hasOKPrefix) {
+			input = [input substringFromIndex:4];
+		} else if (hasMCPSPrefix) {
+			input = [input substringFromIndex:5];
+		}
 	} else {
 		return nil;
 	}

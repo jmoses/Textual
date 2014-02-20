@@ -26,7 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-	
+
 #include "AHLinkLexer.h"
 	
 %}
@@ -67,7 +67,7 @@ gtalkSpec       gtalk:(chat|call|gtalk)\?jid={mailSpec}(&from_jid={mailSpec})?
 myimSpec        myim:(addContact|sendIM)\?(((uID|cID)=[0-9]*&?)|(auto=(true|false)&?))+
 msnSpec         msnim:(chat|add|voice|video)\?contact={mailSpec}
 dictSpec		dict:{urlPath}
-magnetSpec		magnet:\?xt\=urn:btih:([A-Fa-f0-9]{40})[^[:space:]]*
+magnetSpec		magnet:\?xt\=urn:(bitprint|btih|ed2k|md5|sha1|tree\:tiger):([A-Fa-f0-9]{20,80})[^[:space:]]*
 redditSpec		\/r\/[A-Za-z0-9][A-Za-z0-9_]{2,20}
 messageSpec		message:(\/\/)?(%3[Cc]).+(%3[Ee])
 
@@ -78,16 +78,16 @@ ignoreable      (b\.sc|m\.in)
 %x CANONICAL
 %%
 
-<CANONICAL>({userAndPass}@)?{urlCSpec}|{ipURL}|{ipv6URL} {yyleng += yyextra;
-                                                          BEGIN INITIAL;
-                                                          return AHValidURL;}
+<CANONICAL>({userAndPass}@)?{urlCSpec}|{ipURL}|{ipv6URL} { yyleng += yyextra;
+                                                           BEGIN INITIAL;
+                                                           return AHParserValidURLWithNormalSchemeStatus; }
 
-<CANONICAL>.*                                            {BEGIN INITIAL;
-                                                          return AHInvalidURL;}
+<CANONICAL>.*                                            { BEGIN INITIAL;
+                                                           return AHParserInvalidURLStatus; }
 
-{ignoreable}            {return AHInvalidURL;}
+{ignoreable}            { return AHParserInvalidURLStatus; }
 
-file:\/\/\/.*           {return AHValidFile;}
+file:\/\/\/.*           { return AHParserValidURLWithFileSchemeStatus; }
 
 https?:\/\/             |
 s?ftp:\/\/              |
@@ -95,7 +95,7 @@ feed:\/\/               |
 ssh:\/\/                |
 telnet:\/\/             |
 rts?p:\/\/              |
-ircs?:\/\/                |
+ircs?:\/\/              |
 textual:\/\/            |
 nntp:\/\/               |
 cifs:\/\/               |
@@ -109,9 +109,11 @@ webcal:\/\/             |
 svn(\+ssh)?:\/\/        |
 notes:\/\/              |
 gopher:\/\/             |
-x-man-page:\/\/         {yyextra = yyleng; BEGIN CANONICAL;}
+x-man-page:\/\/         { yyextra = yyleng; BEGIN CANONICAL; }
 
-{urlSpec}               {return AHDegenerateURL;}
+{urlSpec}               { return AHParserValidURLWithDegeneratedSchemeStatus; }
+
+{redditSpec}			{ return AHParserValidURLWithSpecialSchemeForRedditStatus; }
 
 {myimSpec}              |
 {jabberSpec}            |
@@ -123,9 +125,8 @@ x-man-page:\/\/         {yyextra = yyleng; BEGIN CANONICAL;}
 {msnSpec}               |
 {dictSpec}				|
 {magnetSpec}			|
-{redditSpec}			|
 {messageSpec}			|
-{spotifySpec}           {return AHValidURL;}
+{spotifySpec}           { return AHParserValidURLWithSlashlessSchemeStatus; }
 
-.                       {return AHInvalidURL;}
+.                       { return AHParserInvalidURLStatus; }
 %%

@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -43,19 +43,6 @@
 #pragma mark -
 #pragma mark Custom Methods
 
-- (CGColorRef)aCGColor
-{
-	NSInteger numberOfComponents = [self numberOfComponents];
-
-	CGFloat components[numberOfComponents];
-	
-    CGColorSpaceRef colorSpace = [self.colorSpace CGColorSpace];
-
-    [self getComponents:(CGFloat *)&components];
-
-    return CGColorCreate(colorSpace, components);
-}
-
 + (NSColor *)internalCalibratedRed:(CGFloat)red green:(CGFloat)green blue:(CGFloat)blue alpha:(CGFloat)alpha
 {
 	if (red   > 1.0) {
@@ -71,6 +58,23 @@
 	}
 
 	return [NSColor colorWithCalibratedRed:red green:green blue:blue alpha:alpha];
+}
+
++ (NSColor *)internalDeviceRed:(CGFloat)red green:(CGFloat)green blue:(CGFloat)blue alpha:(CGFloat)alpha
+{
+	if (red   > 1.0) {
+		red /= 255.99999f;
+	}
+	
+	if (green > 1.0) {
+		green /= 255.99999f;
+	}
+	
+	if (blue  > 1.0) {
+		blue  /= 255.99999f;
+	}
+	
+	return [NSColor colorWithDeviceRed:red green:green blue:blue alpha:alpha];
 }
 
 - (NSColor *)invertColor
@@ -210,9 +214,9 @@
 + (NSColor *)fromCSS:(NSString *)s
 {
 	if ([s hasPrefix:@"#"]) {
-		s = [s safeSubstringFromIndex:1];
+		s = [s substringFromIndex:1];
 
-		NSInteger len = s.length;
+		NSInteger len = [s length];
 
 		if (len == 6) {
 			long n = strtol([s UTF8String], NULL, 16);
@@ -221,7 +225,7 @@
 			NSInteger g = ((n >> 8) & 0xff);
 			NSInteger b = (n & 0xff);
 
-			return TXCalibratedRGBColor(r, b, g);
+			return TXCalibratedDeviceColor(r, b, g);
 		} else if (len == 3) {
 			long n = strtol([s UTF8String], NULL, 16);
 
@@ -229,7 +233,7 @@
 			NSInteger g = ((n >> 4) & 0xf);
 			NSInteger b = (n & 0xf);
 
-			return TXCalibratedRGBColor((r / 15.0), (g / 15.0), (b / 15.0));
+			return TXCalibratedDeviceColor((r / 15.0), (g / 15.0), (b / 15.0));
 		}
 	}
 
@@ -257,21 +261,6 @@
 + (NSColor *)outlineViewHeaderDisabledTextColor
 {
 	return [NSColor internalCalibratedRed:158 green:162 blue:173 alpha:1.0];
-}
-
-@end
-
-@implementation NSGradient (TXGradientHelper)
-
-+ (NSGradient *)gradientWithStartingColor:(NSColor *)startingColor endingColor:(NSColor *)endingColor
-{
-	return [[self alloc] initWithStartingColor:startingColor endingColor:endingColor];
-}
-
-+ (NSGradient *)sourceListBackgroundGradientColor
-{
-	return [self gradientWithStartingColor:[NSColor internalCalibratedRed:234 green:237 blue:242 alpha:1.0]
-							   endingColor:[NSColor internalCalibratedRed:199 green:207 blue:216 alpha:1.0]];
 }
 
 @end

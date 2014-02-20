@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -46,12 +46,10 @@
 
 + (NSString *)localizedStringWithKey:(NSString *)key from:(NSBundle *)bundle
 {
-	TXMasterController *master = [TLOLanguagePreferences masterController];
+	TPCThemeSettings *customSettings = [self.themeController customSettings];
 
-	TPCThemeSettings *customSettings = master.themeController.customSettings;
-
-	if (customSettings && [customSettings.languageLocalizations containsKey:key]) {
-		NSString *localString = [customSettings.languageLocalizations stringForKey:key];
+	if (customSettings && [[customSettings languageLocalizations] containsKey:key]) {
+		NSString *localString = [[customSettings languageLocalizations] stringForKey:key];
 
 		return [localString reservedCharactersToIRCFormatting];
 	}

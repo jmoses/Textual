@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
  
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -58,10 +58,26 @@ typedef enum IRCChannelType : NSInteger {
 @property (nonatomic, assign) BOOL ignoreHighlights;
 @property (nonatomic, assign) BOOL ignoreJPQActivity;
 
-- (void)destroyKeychains;
+@property (nonatomic, assign) BOOL encryptionKeyIsSet;
+@property (nonatomic, assign) BOOL secretKeyIsSet;
 
 - (id)initWithDictionary:(NSDictionary *)dic;
 - (NSMutableDictionary *)dictionaryValue;
 
+- (BOOL)isEqualToChannelConfiguration:(IRCChannelConfig *)seed;
+
 + (NSDictionary *)seedDictionary:(NSString *)channelName;
+
+/* Keychain. */
+- (void)destroyKeychains;
+- (void)writeKeychainItemsToDisk;
+
+- (void)writeSecretKeyKeychainItemToDisk;
+- (void)writeEncryptionKeyKeychainItemToDisk;
+
+- (NSString *)temporarySecretKey;
+- (NSString *)temporaryEncryptionKey;
+
+- (NSString *)secretKeyValue;
+- (NSString *)encryptionKeyValue;
 @end

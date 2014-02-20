@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -60,6 +60,8 @@
 
 @implementation IRCWorld;
 
+@synthesize isoStandardDateFormatter = _isoStandardDateFormatter;
+
 #pragma mark -
 #pragma mark Initialization
 
@@ -86,22 +88,10 @@
 	}
 
 	if ([config boolForKey:@"soundIsMuted"]) {
-		self.isSoundMuted = NO;
-		
-		[self.masterController.menuController toggleMuteOnNotificationSounds:nil];
+		[self.menuController toggleMuteOnNotificationSoundsShortcut:NSOnState];
 	}
 
 	self.isPopulatingSeeds = NO;
-}
-
-- (void)setupOtherServices
-{
-	NSDateFormatter *dateFormatter = [NSDateFormatter new];
-
-	[dateFormatter setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
-	[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]; //2011-10-19T16:40:51.620Z
-
-	self.isoStandardDateFormatter = dateFormatter;
 }
 
 - (void)setupTree
@@ -131,7 +121,7 @@
 	if (firstSelection) {
 		NSInteger n = [self.serverList rowForItem:firstSelection];
 
-		if (NSObjectIsNotEmpty(firstSelection.channels)) {
+		if ([firstSelection.channels count] > 0) {
 			++n;
 		}
 
@@ -153,10 +143,33 @@
 	[self updateNavigationChannelList];
 }
 
+- (void)setupOtherServices
+{
+	/* Setup reachability. */
+		 _networkReachability = [OELReachability reachabilityForInternetConnection];
+
+	[self.networkReachability setReachableBlock:^(OELReachability *reachability) {
+		[[IRCWorld worldController] reachabilityChanged:YES];
+	}];
+
+	[self.networkReachability setUnreachableBlock:^(OELReachability *reachability) {
+		[[IRCWorld worldController] reachabilityChanged:NO];
+	}];
+
+	[self.networkReachability startNotifier];
+}
+
+- (void)reachabilityChanged:(BOOL)reachable
+{
+	for (IRCClient *u in [self clients]) {
+		[u reachabilityChanged:reachable];
+	}
+}
+
 - (void)updateNavigationChannelList
 {
 	/* Populate navigation list. */
-	[self.masterController.menuController populateNavgiationChannelList];
+	[self.menuController populateNavgiationChannelList];
 }
 
 - (NSMutableDictionary *)dictionaryValue
@@ -164,13 +177,13 @@
 	NSMutableArray *ary = [NSMutableArray array];
 
 	for (IRCClient *u in self.clients) {
-		[ary safeAddObject:[u dictionaryValue]];
+		[ary addObject:[u dictionaryValue]];
 	}
 
 	NSMutableDictionary *dict = [NSMutableDictionary dictionary];
 	
-	[dict safeSetObject:ary						forKey:@"clients"];
-	[dict safeSetObject:@(self.isSoundMuted)	forKey:@"soundIsMuted"];
+	[dict setObject:ary						forKey:@"clients"];
+	[dict setObject:@(self.isSoundMuted)	forKey:@"soundIsMuted"];
 
 	return dict;
 }
@@ -178,19 +191,132 @@
 - (void)save
 {
 	[TPCPreferences saveWorld:[self dictionaryValue]];
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	[self.cloudSyncManager synchronizeToCloud];
+#endif
 }
 
-- (void)terminate
+- (void)prepareForApplicationTermination
 {
-	[RZPluginManager() unloadPlugins];
-	
+	[self.networkReachability stopNotifier];
+
 	for (IRCClient *c in self.clients) {
-		[c terminate];
+		[c prepareForApplicationTermination];
 	}
 }
 
 #pragma mark -
+#pragma mark Cloud Management 
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+- (NSMutableDictionary *)cloudDictionaryValue
+{
+	NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+	
+	for (IRCClient *u in self.clients) {
+		if (u.config.excludedFromCloudSyncing == NO) {
+			NSDictionary *prefs = [u dictionaryValue:YES];
+			
+			NSString *prefKey = [IRCWorldControllerCloudClientEntryKeyPrefix stringByAppendingString:u.config.itemUUID];
+			
+			[dict setObject:prefs forKey:prefKey];
+		}
+	}
+	
+	return dict;
+}
+
+- (void)addClientToListOfDeletedClients:(NSString *)itemUUID
+{
+	NSAssertReturn([TPCPreferences syncPreferencesToTheCloud]); // Are we even syncing?
+	
+	/* Begin work. */
+	NSArray *deletedClients = [self.cloudSyncManager valueForKey:IRCWorldControllerCloudDeletedClientsStorageKey];
+	
+	/* Duplicate? */
+	if ([deletedClients containsObject:itemUUID]) {
+		return;
+	}
+	
+	/* Does the array even exist? */
+	if (PointerIsEmpty(deletedClients)) {
+		deletedClients = @[itemUUID];
+	} else {
+		deletedClients = [deletedClients arrayByAddingObject:itemUUID];
+	}
+	
+	/* Set new array. */
+	[self.cloudSyncManager setValue:deletedClients forKey:IRCWorldControllerCloudDeletedClientsStorageKey];
+}
+
+/* If a client set locally was set to not be synced from the cloud, but its UUID appears as a
+ deleted item from another client, then remove that UUID from the deleted clients list if that
+ client is again set to sync to the cloud. */
+- (void)removeClientFromListOfDeletedClients:(NSString *)itemUUID
+{
+	NSAssertReturn([TPCPreferences syncPreferencesToTheCloud]); // Are we even syncing?
+	
+	/* Begin work. */
+	NSArray *deletedClients = [self.cloudSyncManager valueForKey:IRCWorldControllerCloudDeletedClientsStorageKey];
+	
+	if (PointerIsNotEmpty(deletedClients)) {
+		NSInteger clientIndex = [deletedClients indexOfObject:itemUUID];
+		
+		if (NSDissimilarObjects(clientIndex, NSNotFound)) {
+			deletedClients = [deletedClients arrayByRemovingObjectAtIndex:clientIndex];
+			
+			[self.cloudSyncManager setValue:deletedClients forKey:IRCWorldControllerCloudDeletedClientsStorageKey];
+		}
+	}
+}
+
+- (void)removeClientConfigurationCloudEntry:(NSString *)itemUUID
+{
+	NSString *prefKey = [IRCWorldControllerCloudClientEntryKeyPrefix stringByAppendingString:itemUUID];
+	
+	[self.cloudSyncManager removeObjectForKey:prefKey];
+}
+
+- (void)processCloudCientDeletionList:(NSArray *)deletedClients
+{
+	NSAssertReturn([TPCPreferences syncPreferencesToTheCloud]); // Are we even syncing?
+	
+	NSObjectIsEmptyAssert(deletedClients);
+	
+	[deletedClients enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+		/* Try to find a client from the imported list. */
+		IRCClient *u = [self findClientById:obj];
+		
+		/* We only delete clients that are set to be synced. */
+		if (u && u.config.excludedFromCloudSyncing == NO) {
+			[self destroyClient:u bySkippingCloud:YES];
+		}
+	}];
+}
+
+- (TPCPreferencesCloudSync *)cloudSyncManager
+{
+	return self.masterController.cloudSyncManager;
+}
+#endif
+
+#pragma mark -
 #pragma mark Properties
+
+- (NSDateFormatter *)isoStandardDateFormatter
+{
+	PointerIsNotEmptyAssertReturn(_isoStandardDateFormatter, _isoStandardDateFormatter);
+
+	NSDateFormatter *dateFormatter = [NSDateFormatter new];
+
+	[dateFormatter setTimeZone:[NSTimeZone timeZoneForSecondsFromGMT:0]];
+	[dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"]; //2011-10-19T16:40:51.620Z
+
+	_isoStandardDateFormatter = dateFormatter;
+
+	return _isoStandardDateFormatter;
+}
 
 - (IRCClient *)selectedClient
 {
@@ -256,9 +382,9 @@
 	if ([TPCPreferences logHighlights]) {
 		/* Render message. */
 		NSString *messageBody;
-		NSString *nicknameBody = [logLine formattedNickname:channel].trim;
+		NSString *nicknameBody = [[logLine formattedNickname:channel] trim];
 
-		if (logLine.lineType == TVCLogLineActionType) {
+		if ([logLine lineType] == TVCLogLineActionType) {
 			if ([nicknameBody hasSuffix:@":"]) {
 				messageBody = [NSString stringWithFormat:TXNotificationHighlightLogAlternativeActionFormat, nicknameBody, logLine.messageBody];
 			} else {
@@ -275,14 +401,12 @@
 		[channel.client.highlights insertObject:entry atIndex:0];
 
 		/* Reload table if the window is open. */
-		id highlightSheet = [self.masterController.menuController windowFromWindowList:@"TDCHighlightListSheet"];
+		id highlightSheet = [self.menuController windowFromWindowList:@"TDCHighlightListSheet"];
 
 		if (highlightSheet) {
             [highlightSheet performSelector:@selector(reloadTable) withObject:nil afterDelay:2.0];
 		}
-	} else {
-		[channel.client.highlights removeAllObjects];
-	}
+	} 
 }
 
 - (void)autoConnectAfterWakeup:(BOOL)afterWakeUp
@@ -341,7 +465,7 @@
 {
 	PointerIsEmptyAssert(self.selectedItem);
 
-    str = [RZPluginManager() processInterceptedUserInput:str command:command];
+    str = [THOPluginManagerSharedInstance() processInterceptedUserInput:str command:command];
 
 	[self.selectedItem.client inputText:str command:command];
 }
@@ -436,7 +560,7 @@
 - (void)reloadLoadingScreen
 {
 	if (self.isPopulatingSeeds == NO) {
-		if (self.clients.count <= 0) {
+		if ([self.clients count] <= 0) {
 			[self.masterController.mainWindowLoadingScreen hideAll:NO];
 			[self.masterController.mainWindowLoadingScreen popWelcomeAddServerView];
 		} else {
@@ -481,6 +605,8 @@
 
 - (void)storePreviousSelection
 {
+	NSAssertReturn(self.temporarilyDisablePreviousSelectionUpdates == NO);
+	
 	if (PointerIsEmpty(self.selectedItem)) {
 		self.previousSelectedClientId = nil;
 		self.previousSelectedChannelId = nil;
@@ -522,6 +648,8 @@
 
 - (void)preferencesChanged
 {
+	[self.menuController preferencesChanged];
+	
 	for (IRCClient *c in self.clients) {
 		[c preferencesChanged];
 	}
@@ -567,8 +695,8 @@
 	NSMutableString *title = [NSMutableString string];
 
 	if ([selectedItem isClient]) {
-		[title appendString:client.altNetworkName];
-		[title appendString:@" — "];
+		[title appendString:TXTFLS(@"ChannelApplicationTitleLocalNicknameAndNetwork", client.localNickname, client.altNetworkName)];
+		[title appendString:TXTLS(@"ChannelApplicationTitleLocalDivider")];
         
 		NSString *networkAddress = [client networkAddress];
 
@@ -578,8 +706,8 @@
 			[title appendString:networkAddress];
 		}
 	} else {
-		[title appendString:client.altNetworkName];
-		[title appendString:@" — "];
+		[title appendString:TXTFLS(@"ChannelApplicationTitleLocalNicknameAndNetwork", client.localNickname, client.altNetworkName)];
+		[title appendString:TXTLS(@"ChannelApplicationTitleLocalDivider")];
 
         if (channel.isPrivateMessage) {
             /* Textual defines the topic of a private message as the user host. */
@@ -605,7 +733,7 @@
 	}
 
 	[mainWindow setTitle:title];
-	[mainWindow setRepresentedURL:[NSBundle.mainBundle bundleURL]];
+	[mainWindow setRepresentedURL:[RZMainBundle() bundleURL]];
 
 	if (client.config.connectionUsesSSL) {
 		[[mainWindow standardWindowButton:NSWindowDocumentIconButton] setImage:[NSImage imageNamed:@"NSLockLockedTemplate"]];
@@ -688,25 +816,34 @@
 
 - (void)reloadTheme
 {
-	[self.masterController.themeController load];
+	[self reloadTheme:YES];
+}
+
+- (void)reloadTheme:(BOOL)reloadUserInterface
+{
+	[self.themeController load];
+
+	[TVCLogControllerHistoricLogSharedInstance() saveData]; // Save pre-existing buffers before reload.
 
 	for (IRCClient *u in self.clients) {
 		[u.viewController reloadTheme];
-		
+
 		for (IRCChannel *c in u.channels) {
 			[c.viewController reloadTheme];
 		}
 	}
 
-	[self.serverList updateBackgroundColor];
-	[self.serverList reloadAllDrawingsIgnoringOtherReloads];
+	if (reloadUserInterface) {
+		[self.serverList updateBackgroundColor];
+		[self.serverList reloadAllDrawingsIgnoringOtherReloads];
 
-	[self.memberList reloadAllUserInterfaceElements];
+		[self.memberList reloadAllUserInterfaceElements];
 
-	[self.masterController.serverSplitView setNeedsDisplay:YES];
-	[self.masterController.memberSplitView setNeedsDisplay:YES];
+		[self.masterController.serverSplitView setNeedsDisplay:YES];
+		[self.masterController.memberSplitView setNeedsDisplay:YES];
 
-	[self.masterController.inputTextField redrawOriginPoints];
+		[self.masterController.inputTextField redrawOriginPoints];
+	}
 }
 
 - (void)changeTextSize:(BOOL)bigger
@@ -728,10 +865,12 @@
 	 first view that exists in Textual what its multiplier is. If there
 	 is no first view, then we default to 1.0 which is 100%. */
 
-	IRCClient *c = [self.clients safeObjectAtIndex:0];
+	NSObjectIsEmptyAssertReturn(self.clients, 1);
+	
+	IRCClient *c = [self.clients objectAtIndex:0];
 
 	if (c) {
-		return c.viewController.view.textSizeMultiplier;
+		return [c.viewController.view textSizeMultiplier];
 	}
 
 	return 1;
@@ -765,10 +904,6 @@
 
 	[c.viewController clear];
 	[c.viewController notifyDidBecomeVisible];
-
-	if ([c.treeUUID isEqualToString:self.selectedChannel.treeUUID]) {
-		[self outlineViewSelectionDidChange:nil];
-	}
 	
 	[c.viewController setTopic:c.topic];
 
@@ -781,10 +916,6 @@
 
 	[u.viewController clear];
 	[u.viewController notifyDidBecomeVisible];
-
-	if ([u.treeUUID isEqualToString:self.selectedClient.treeUUID]) {
-		[self outlineViewSelectionDidChange:nil];
-	}
 
 	[self reloadTreeItem:u];
 }
@@ -809,7 +940,7 @@
 		[self createChannel:e client:c reload:NO adjust:NO];
 	}
 	
-	[self.clients safeAddObject:c];
+	[self.clients addObject:c];
 	
 	if (reload) {
 		NSInteger index = [self.clients indexOfObject:c];
@@ -817,7 +948,7 @@
 		[self.serverList addItemToList:index inParent:nil];
 	}
 
-	if (self.clients.count == 1) {
+	if ([self.clients count] == 1 && self.isPopulatingSeeds == NO) {
 		/* If our client count is 1, then it means we just added our
 		 first client ever. We want to force the selection to this 
 		 because if we had no client beforehand, then we did not have
@@ -837,9 +968,7 @@
 	
 	IRCChannel *c = [client findChannel:seed.channelName];
 
-	if (NSObjectIsNotEmpty(c.name)) {
-		return c;
-	}
+	NSObjectIsNotEmptyAssertReturn(c.name, c);
 
 	c = [IRCChannel new];
 	
@@ -859,12 +988,12 @@
 		NSInteger n = [client indexOfFirstPrivateMessage];
 
 		if (n >= 0) {
-			[client.channels safeInsertObject:c atIndex:n];
+			[client.channels insertObject:c atIndex:n];
 		} else {
-			[client.channels safeAddObject:c];
+			[client.channels addObject:c];
 		}
 	} else {
-		[client.channels safeAddObject:c];
+		[client.channels addObject:c];
 	}
 	
 	if (reload) {
@@ -913,8 +1042,8 @@
 		
 		NSInteger n = (i + 1);
 		
-		if (0 <= n && n < self.clients.count) {
-			sel = [self.clients safeObjectAtIndex:n];
+		if (0 <= n && n < [self.clients count]) {
+			sel = [self.clients objectAtIndex:n];
 		}
 		
 		i = [self.serverList rowForItem:target];
@@ -963,7 +1092,23 @@
 
 - (void)destroyClient:(IRCClient *)u
 {
-	[u terminate];
+	[self destroyClient:u bySkippingCloud:NO];
+}
+
+- (void)destroyClient:(IRCClient *)u bySkippingCloud:(BOOL)skipCloud
+{
+	[u prepareForPermanentDestruction];
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if ([TPCPreferences syncPreferencesToTheCloud]) {
+		if (u.config.excludedFromCloudSyncing == NO) {
+			if (skipCloud == NO) {
+				[self addClientToListOfDeletedClients:u.config.itemUUID]; // Set client as deleted.
+				[self removeClientConfigurationCloudEntry:u.config.itemUUID];
+			}
+		}
+	}
+#endif
 	
 	if (self.selectedItem && self.selectedItem.client == u) {
 		[self selectOtherAndDestroy:u];
@@ -993,7 +1138,7 @@
 		}
 	}
     
-	[c terminate];
+	[c prepareForPermanentDestruction];
 	
 	if (u.lastSelectedChannel == c) {
 		u.lastSelectedChannel = nil;
@@ -1040,39 +1185,7 @@
 		return;
 	}
 
-	[self.masterController.mainWindow sendEvent:e];
-}
-
-- (void)logDoubleClick:(NSString *)s
-{
-	NSArray *ary = [s componentsSeparatedByCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-
-	NSObjectIsEmptyAssert(ary);
-
-	NSString *kind = [ary safeObjectAtIndex:0];
-	
-	if ([kind isEqualToString:@"client"]) {
-		if (ary.count >= 2) {
-			NSString *uid = [ary objectAtIndex:1];
-			
-			IRCClient *u = [self findClientById:uid];
-			
-			if (u) {
-				[self select:u];
-			}
-		}
-	} else if ([kind isEqualToString:@"channel"]) {
-		if (ary.count >= 3) {
-			NSString *uid = [ary objectAtIndex:1];
-			NSString *cid = [ary objectAtIndex:2];
-			
-			IRCChannel *c = [self findChannelByClientId:uid channelId:cid];
-			
-			if (c) {
-				[self select:c];
-			}
-		}
-	}
+	[self.masterController.inputTextField keyDown:e];
 }
 
 #pragma mark -
@@ -1114,7 +1227,7 @@
 
 - (NSInteger)outlineView:(NSOutlineView *)sender numberOfChildrenOfItem:(id)item
 {
-	PointerIsEmptyAssertReturn(item, self.clients.count);
+	PointerIsEmptyAssertReturn(item, [self.clients count]);
 	
 	return [item numberOfChildren];
 }
@@ -1155,7 +1268,7 @@
 - (NSView *)outlineView:(NSOutlineView *)outlineView viewForTableColumn:(NSTableColumn *)tableColumn item:(IRCTreeItem *)item
 {
 	/* Ask our view controller what we are. */
-	if (PointerIsEmpty(item.viewController.channel)) {
+	if (item.isClient) {
 		/* We are a group item. A client. */
 
 		NSView *newView = [outlineView makeViewWithIdentifier:@"GroupView" owner:self];
@@ -1210,7 +1323,7 @@
 	 then move selection to the console of the collapsed server. */
 	id itemBeingCollapsed = [notification.userInfo objectForKey:@"NSObject"];
 
-	if (itemBeingCollapsed == self.selectedClient) {
+	if (itemBeingCollapsed == self.selectedClient && [itemBeingCollapsed isClient] == NO) {
 		[self select:self.selectedClient];
 	}
 }
@@ -1221,15 +1334,17 @@
 	[self storePreviousSelection];
 
 	/* Reset spelling for text field. */
-	TVCInputTextField *textField = self.masterController.inputTextField;
+	TVCMainWindowTextView *textField = [self.masterController inputTextField];
 	
-	[RZSpellChecker() setIgnoredWords:@[] inSpellDocumentWithTag:textField.spellCheckerDocumentTag];
-
+	if ([textField hasModifiedSpellingDictionary]) {
+		[RZSpellChecker() setIgnoredWords:@[] inSpellDocumentWithTag:textField.spellCheckerDocumentTag];
+	}
+	
 	/* Prepare next item. */
-	id nextItem = [self.serverList itemAtRow:self.serverList.selectedRow];
+	id nextItem = [self.serverList itemAtRow:[self.serverList selectedRow]];
 
 	[self.selectedItem resetState]; // Reset state of old item.
-	self.selectedItem = nextItem;
+	 self.selectedItem = nextItem;
 
 	[self.selectedItem resetState]; // Reset state of new item.
 
@@ -1257,12 +1372,7 @@
 	[log.view clearSelection];
 
 	/* Some common defines. */
-	IRCChannel *previousChannel;
 	IRCChannel *newChannel;
-
-	if (self.previouslySelectedItem && [self.previouslySelectedItem isChannel]) {
-		previousChannel = (id)self.previouslySelectedItem;
-	}
 
 	if (self.selectedItem && [self.selectedItem isChannel]) {
 		newChannel = (id)self.selectedItem;
@@ -1294,7 +1404,6 @@
 		[self.memberList scrollRowToVisible:0];
 		
 		[newChannel reloadDataForTableView];
-		[newChannel updateTableViewByRemovingIgnoredUsers];
 	}
 
 	/* Finish member list. */
@@ -1307,24 +1416,23 @@
 	 history setup to be channel specific. */
 	if ([TPCPreferences inputHistoryIsChannelSpecific]) {
 		NSAttributedString *inputValue = [textField attributedStringValue];
-		
-		self.masterController.inputHistory = self.selectedItem.inputHistory;
-		
+
+		IRCTreeItem *selected = [self selectedItem];
 		IRCTreeItem *previous = [self previouslySelectedItem];
 		
-		TLOInputHistory *oldHistory = previous.inputHistory;
-		TLOInputHistory *newHistory = self.selectedItem.inputHistory;
+		TLOInputHistory *oldHistory = [previous inputHistory];
+		TLOInputHistory *newHistory = [selected inputHistory];
 		
 		[oldHistory setLastHistoryItem:inputValue];
 		
 		[textField setStringValue:NSStringEmptyPlaceholder];
 		
-		if (NSObjectIsNotEmpty(newHistory.lastHistoryItem)) {
-			[textField setAttributedStringValue:newHistory.lastHistoryItem];
+		if ([newHistory lastHistoryItem]) {
+			[textField setAttributedStringValue:[newHistory lastHistoryItem]];
 		}
 	}
 	
-	if (self.selectedItem.isClient || self.selectedItem.isPrivateMessage) {
+	if ([self.selectedItem isClient] || [self.selectedItem isPrivateMessage]) {
 		[self.masterController showMemberListSplitView:NO];
 	} else {
 		if (self.memberList.setHiddenByUser == NO) {
@@ -1346,7 +1454,7 @@
 {
 	NSObjectIsEmptyAssertReturn(items, NO);
 	
-	IRCTreeItem *i = [items safeObjectAtIndex:0];
+	IRCTreeItem *i = [items objectAtIndex:0];
 
 	NSString *s = i.treeUUID;
 	
@@ -1408,20 +1516,20 @@
 		NSArray *ary = toClient.channels;
 		
 		NSMutableArray *low = [[ary subarrayWithRange:NSMakeRange(0, index)] mutableCopy];
-		NSMutableArray *high = [[ary subarrayWithRange:NSMakeRange(index, (ary.count - index))] mutableCopy];
+		NSMutableArray *high = [[ary subarrayWithRange:NSMakeRange(index, ([ary count] - index))] mutableCopy];
 		
 		[low removeObjectIdenticalTo:c];
 		[high removeObjectIdenticalTo:c];
 		
 		if (c.isChannel) {
-			if (NSObjectIsNotEmpty(low)) {
+			if ([low count] > 0) {
 				IRCChannel *prev = [low lastObject];
 
                 NSAssertReturnR(prev.isChannel, NSDragOperationNone);
 			}
 		} else {
-			if (NSObjectIsNotEmpty(high)) {
-				IRCChannel *next = [high safeObjectAtIndex:0];
+			if ([high count] > 0) {
+				IRCChannel *next = [high objectAtIndex:0];
 
                 NSAssertReturnR((next.isChannel == NO), NSDragOperationNone);
 			}
@@ -1452,7 +1560,7 @@
 		NSMutableArray *ary = self.clients;
         
 		NSMutableArray *low = [[ary subarrayWithRange:NSMakeRange(0, index)] mutableCopy];
-		NSMutableArray *high = [[ary subarrayWithRange:NSMakeRange(index, (ary.count - index))] mutableCopy];
+		NSMutableArray *high = [[ary subarrayWithRange:NSMakeRange(index, ([ary count] - index))] mutableCopy];
 
 		NSInteger originalIndex = [ary indexOfObject:i];
 
@@ -1462,7 +1570,7 @@
 		[ary removeAllObjects];
 		
 		[ary addObjectsFromArray:low];
-		[ary safeAddObject:i];
+		[ary addObject:i];
 		[ary addObjectsFromArray:high];
 
 		NSArray *childItems = [self.serverList groupItems];
@@ -1472,12 +1580,12 @@
 		NSInteger oldIndex = [childItems indexOfObject:i];
 		NSInteger newIndex = 0;
 
-		id lastObject = low.lastObject;
+		id lastObject = [low lastObject];
 
 		if (lastObject) {
 			newIndex = [childItems indexOfObject:lastObject];
 
-			if (originalIndex <= oldIndex && newIndex < (childItems.count - 1)) {
+			if (originalIndex <= oldIndex && newIndex < ([childItems count] - 1)) {
 				newIndex += 1;
 			}
 		}
@@ -1487,8 +1595,6 @@
 		}
 
 		[self.serverList moveItemAtIndex:oldIndex inParent:nil toIndex:newIndex inParent:nil];
-		
-		[self save];
 	} else {
 		if (PointerIsEmpty(item) || NSDissimilarObjects(item, i.client)) {
             return NO;
@@ -1499,7 +1605,7 @@
 		NSMutableArray *ary = u.channels;
         
 		NSMutableArray *low = [[ary subarrayWithRange:NSMakeRange(0, index)] mutableCopy];
-		NSMutableArray *high = [[ary subarrayWithRange:NSMakeRange(index, (ary.count - index))] mutableCopy];
+		NSMutableArray *high = [[ary subarrayWithRange:NSMakeRange(index, ([ary count] - index))] mutableCopy];
 
 		NSInteger originalIndex = [ary indexOfObject:i];
 		
@@ -1509,7 +1615,7 @@
 		[ary removeAllObjects];
 		
 		[ary addObjectsFromArray:low];
-		[ary safeAddObject:i];
+		[ary addObject:i];
 		[ary addObjectsFromArray:high];
 
 		NSArray *childItems = [self.serverList rowsFromParentGroup:u];
@@ -1519,7 +1625,7 @@
 		NSInteger oldIndex = [childItems indexOfObject:i];
 		NSInteger newIndex = 0;
 		
-		id lastObject = low.lastObject;
+		id lastObject = [low lastObject];
 
 		if (lastObject) {
 			newIndex  = [childItems indexOfObject:lastObject];
@@ -1535,8 +1641,6 @@
 		}
 
 		[self.serverList moveItemAtIndex:oldIndex inParent:u toIndex:newIndex inParent:u];
-
-		[self save];
 	}
 	
 	NSInteger n = [self.serverList rowForItem:self.selectedItem];

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -37,8 +37,19 @@
 
 #import "TextualApplication.h"
 
+#define TPCPreferencesThemeFontNameMissingLocallyDefaultsKey	@"Theme -> Font Name -> Did Not Exist During Last Sync"
+#define TPCPreferencesThemeNameMissingLocallyDefaultsKey		@"Theme -> Name -> Did Not Exist During Last Sync"
+
 /* Absolutely no plugin should call this class. */
 @interface TPCPreferencesImportExport : NSObject
 + (void)import;
 + (void)export;
+
+/* For iCloud purposes. */
++ (void)import:(id)obj withKey:(id)key;
+
++ (void)importContentsOfDictionary:(NSDictionary *)aDict;
++ (void)importWorldControllerClientConfiguratoin:(NSDictionary *)client isCloudBasedImport:(BOOL)isCloudImport;
+
++ (NSDictionary *)exportedPreferencesDictionaryRepresentation;
 @end

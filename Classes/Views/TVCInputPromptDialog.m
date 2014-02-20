@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -55,7 +55,7 @@
 			 defaultUserInput:(NSString *)userInputText
 			  completionBlock:(void (^)(BOOL defaultButtonClicked, NSString *resultString))callbackBlock;
 {
-	[NSBundle loadNibNamed:@"TVCInputPromptDialog" owner:self];
+	[RZMainBundle() loadCustomNibNamed:@"TVCInputPromptDialog" owner:self topLevelObjects:nil];
 
 	if (NSObjectIsNotEmpty(userInputText)) {
 		[self.informationalInput setStringValue:userInputText];

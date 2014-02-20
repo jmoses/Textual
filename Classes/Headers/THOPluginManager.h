@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
 
 #import "TextualApplication.h"
 
-#define RZPluginManager()			[THOPluginManager defaultManager]
+#define THOPluginManagerSharedInstance()			[THOPluginManager defaultManager]
 
 @interface THOPluginManager : NSObject
 @property (nonatomic, assign, readonly) dispatch_queue_t dispatchQueue;
@@ -65,7 +65,6 @@
 
 /* Talk to plugins. */
 /* Unless you are Textual, do not call these. We mean it. */
-
 - (NSString *)processInlineMediaContentURL:(NSString *)resource;
 
 - (id)processInterceptedUserInput:(id)input command:(NSString *)command;

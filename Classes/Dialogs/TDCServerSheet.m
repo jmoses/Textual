@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -41,6 +41,12 @@
 #define _tableRowType		@"row"
 #define _tableRowTypes		[NSArray arrayWithObject:_tableRowType]
 
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+@interface TDCServerSheet ()
+@property (nonatomic, assign) BOOL requestCloudDeletionOnClose;
+@end
+#endif
+
 @implementation TDCServerSheet
 
 - (id)init
@@ -50,10 +56,10 @@
 		[self populateTabViewList];
 
 		/* Load our views. */
-		[NSBundle loadNibNamed:@"TDCServerSheet" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCServerSheet" owner:self topLevelObjects:nil];
 
 		/* Load the list of available IRC networks. */
-		NSString *slp = [[TPCPreferences applicationResourcesFolderPath] stringByAppendingPathComponent:@"IRCNetworks.plist"];
+		NSString *slp = [RZMainBundle() pathForResource:@"IRCNetworks" ofType:@"plist"];
 		
 		self.serverList = [NSDictionary dictionaryWithContentsOfFile:slp];
 
@@ -102,6 +108,7 @@
 		[tabViewList addObject:@[@"FloodControl",					@"10"]];
 		[tabViewList addObject:@[@"Network",						@"11"]];
 		[tabViewList addObject:@[@"Proxy",							@"12"]];
+		[tabViewList addObject:@[@"SSLCertificate",					@"13"]];
 	}
 
 	self.tabViewList = tabViewList;
@@ -222,6 +229,7 @@
 	[self updateHighlightsPage];
 	[self updateChannelsPage];
 	[self updateIgnoresPage];
+	[self updateSSLCertificatePage];
 	[self toggleAdvancedEncodings:nil];
 
 	[self proxyTypeChanged:nil];
@@ -245,9 +253,9 @@
 			self.ignoreSheet.ignore = [IRCAddressBook new];
             
             if ([context isEqualToString:@"--"]) {
-				self.ignoreSheet.ignore.hostmask = @"<nickname>";
+				//self.ignoreSheet.ignore.hostmask = @"<nickname>";
             } else {
-				self.ignoreSheet.ignore.hostmask = context;
+				  self.ignoreSheet.ignore.hostmask = context;
 			}
 
 			[self.ignoreSheet start];
@@ -280,10 +288,10 @@
 - (void)makeFirstResponderForRow:(NSInteger)row
 {
 	switch (row) {
-		//case 2: { [self.window makeFirstResponder:self.loginCommandsField];				break; } /* self.commandsView */
-		case 4: { [self.window makeFirstResponder:self.serverNameField];				break; } /* self.generalView */
-		case 5: { [self.window makeFirstResponder:self.nicknameField];					break; } /* self.identityView */
-		case 6: { [self.window makeFirstResponder:self.normalLeavingCommentField];		break; } /* self.messagesView */
+		case 2: { [self.sheet makeFirstResponder:self.loginCommandsField];				break; } /* self.commandsView */
+		case 4: { [self.sheet makeFirstResponder:self.serverNameField];					break; } /* self.generalView */
+		case 5: { [self.sheet makeFirstResponder:self.nicknameField];					break; } /* self.identityView */
+		case 6: { [self.sheet makeFirstResponder:self.normalLeavingCommentField];		break; } /* self.messagesView */
 		default: { break; }
 	}
 }
@@ -314,15 +322,28 @@
 	self.autoReconnectCheck.state			= self.config.autoReconnect;
 	self.connectionUsesSSLCheck.state		= self.config.connectionUsesSSL;
 	self.serverNameField.stringValue		= self.config.clientName;
-	self.serverPasswordField.stringValue	= self.config.serverPassword;
+
+	if (self.config.serverPasswordIsSet) {
+		self.serverPasswordField.stringValue = self.config.serverPassword;
+	}
+
 	self.serverPortField.stringValue		= [NSString stringWithInteger:self.config.serverPort];
 
-	self.zncIgnorePlaybackNotificationsCheck.state	= self.config.zncIgnorePlaybackNotifications;
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	self.excludedFromCloudSyncingCheck.state = self.config.excludedFromCloudSyncing;
+#endif
+
+	self.zncIgnoreConfiguredAutojoinCheck.state = self.config.zncIgnoreConfiguredAutojoin;
+	self.zncIgnorePlaybackNotificationsCheck.state = self.config.zncIgnorePlaybackNotifications;
 
     self.prefersIPv6Check.state				= self.config.connectionPrefersIPv6;
 
 	self.pongTimerCheck.state				= self.config.performPongTimer;
 	self.pongTimerDisconnectCheck.state		= self.config.performDisconnectOnPongTimer;
+	
+	self.disconnectOnReachabilityChangeCheck.state = self.config.performDisconnectOnReachabilityChange;
+	
+	self.validateServerSSLCertificateCheck.state = self.config.validateServerSSLCertificate;
 	
 	/* Identity */
 	if (NSObjectIsEmpty(self.config.nickname)) {
@@ -354,9 +375,11 @@
 	} else {
 		self.alternateNicknamesField.stringValue = NSStringEmptyPlaceholder;
 	}
-	
-	self.nicknamePasswordField.stringValue = self.config.nicknamePassword;
-	
+
+	if (self.config.nicknamePasswordIsSet) {
+		self.nicknamePasswordField.stringValue = self.config.nicknamePassword;
+	}
+
 	/* Messages */
 	self.sleepModeQuitMessageField.stringValue = self.config.sleepModeLeavingComment;
 	self.normalLeavingCommentField.stringValue = self.config.normalLeavingComment;
@@ -373,7 +396,11 @@
 	
 	self.proxyAddressField.stringValue		= self.config.proxyAddress;
 	self.proxyUsernameField.stringValue		= self.config.proxyUsername;
-	self.proxyPasswordField.stringValue		= self.config.proxyPassword;
+
+	if (self.config.proxyPasswordIsSet) {
+		self.proxyPasswordField.stringValue	= self.config.proxyPassword;
+	}
+
 	self.proxyPortField.stringValue			= [NSString stringWithInteger:self.config.proxyPort];
 	
 	/* Connect Commands */
@@ -400,10 +427,19 @@
 	self.config.connectionUsesSSL			= self.connectionUsesSSLCheck.state;
 	self.config.serverPassword				= self.serverPasswordField.trimmedStringValue;
 
-	self.config.zncIgnorePlaybackNotifications	= self.zncIgnorePlaybackNotificationsCheck.state;
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	self.config.excludedFromCloudSyncing = self.excludedFromCloudSyncingCheck.state;
+#endif
+
+	self.config.zncIgnoreConfiguredAutojoin = self.zncIgnoreConfiguredAutojoinCheck.state;
+	self.config.zncIgnorePlaybackNotifications = self.zncIgnorePlaybackNotificationsCheck.state;
 
 	self.config.performPongTimer				= self.pongTimerCheck.state;
 	self.config.performDisconnectOnPongTimer	= self.pongTimerDisconnectCheck.state;
+	
+	self.config.validateServerSSLCertificate = self.validateServerSSLCertificateCheck.state;
+	
+	self.config.performDisconnectOnReachabilityChange = self.disconnectOnReachabilityChangeCheck.state;
 	
 	NSString *realhost = nil;
 	NSString *hostname = [self.serverAddressCombo.firstTokenStringValue cleanedServerHostmask];
@@ -563,6 +599,23 @@
     [self.floodControlToolView setHidden:BOOLReverseValue(match)];
 }
 
+- (void)useSSLCheckChanged:(id)sender
+{
+	NSInteger serverPort = self.serverPortField.integerValue;
+	
+	BOOL useSSL = (self.connectionUsesSSLCheck.state == NSOnState);
+	
+	if (useSSL) {
+		if (serverPort == 6667) {
+			self.serverPortField.stringValue = @"6697";
+		}
+	} else {
+		if (serverPort == 6697) {
+			self.serverPortField.stringValue = @"6667";
+		}
+	}
+}
+
 #pragma mark -
 #pragma mark Actions
 
@@ -575,8 +628,16 @@
 	if ([self.delegate respondsToSelector:@selector(serverSheetOnOK:)]) {
 		[self.delegate serverSheetOnOK:self];
 	}
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if (self.requestCloudDeletionOnClose) {
+		if ([self.delegate respondsToSelector:@selector(serverSheetRequestedCloudExclusionByDeletion:)]) {
+			[self.delegate serverSheetRequestedCloudExclusionByDeletion:self];
+		}
+	}
+#endif
 
-	[self.window makeFirstResponder:nil];
+	[self.sheet makeFirstResponder:nil];
 
 	/* Tell super. */
 	[super ok:nil];
@@ -584,9 +645,22 @@
 
 - (void)cancel:(id)sender
 {
-	[self.window makeFirstResponder:nil];
+	[self.sheet makeFirstResponder:nil];
 
 	[super cancel:nil]; 
+}
+
+- (void)releaseTableViewDataSourceBeforeSheetClosure
+{
+	self.tabView.delegate = nil;
+	self.ignoreTable.delegate = nil;
+	self.channelTable.delegate = nil;
+	self.highlightsTable.delegate = nil;
+
+	self.tabView.dataSource = nil;
+	self.ignoreTable.dataSource = nil;
+	self.channelTable.dataSource = nil;
+	self.highlightsTable.dataSource = nil;
 }
 
 - (void)serverAddressChanged:(id)sender
@@ -604,6 +678,8 @@
 	[self.proxyAddressField	setEnabled:enabled];
 	[self.proxyUsernameField setEnabled:enabled];
 	[self.proxyPasswordField setEnabled:enabled];
+	
+	[self updateSSLCertificatePage];
 }
 
 - (void)toggleAdvancedEncodings:(id)sender
@@ -645,6 +721,195 @@
 	[self populateTabViewList];
 
 	[self.tabView reloadData];
+}
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+- (void)toggleCloudSyncExclusionRequestDeletionCallback:(TLOPopupPromptReturnType)returnType withOriginalAlert:(NSAlert *)originalAlert
+{
+	if (returnType == TLOPopupPromptReturnSecondaryType) {
+		self.requestCloudDeletionOnClose = YES;
+	} else {
+		self.requestCloudDeletionOnClose = NO;
+	}
+}
+
+- (void)toggleCloudSyncExclusion:(id)sender
+{
+	if (self.excludedFromCloudSyncingCheck.state == NSOnState) {
+		TLOPopupPrompts *popup = [TLOPopupPrompts new];
+		
+		[popup sheetWindowWithQuestion:self.sheet
+								target:self
+								action:@selector(toggleCloudSyncExclusionRequestDeletionCallback:withOriginalAlert:)
+								  body:TXTLS(@"iCloudSyncServicesSupportDisabledForServerDialogMessage")
+								 title:TXTLS(@"iCloudSyncServicesSupportDisabledForServerDialogTitle")
+						 defaultButton:TXTLS(@"NoButton")
+					   alternateButton:TXTLS(@"YesButton")
+						   otherButton:nil
+						suppressionKey:nil
+					   suppressionText:nil];
+	} else {
+		TLOPopupPrompts *popup = [TLOPopupPrompts new];
+		
+		[popup sheetWindowWithQuestion:self.sheet
+								target:[TLOPopupPrompts class]
+								action:@selector(popupPromptNilSelector:withOriginalAlert:)
+								  body:TXTLS(@"iCloudSyncServicesSupportEnabledForServerDialogMessage")
+								 title:TXTLS(@"iCloudSyncServicesSupportEnabledForServerDialogTitle")
+						 defaultButton:TXTLS(@"OkButton")
+					   alternateButton:nil
+						   otherButton:nil
+						suppressionKey:nil
+					   suppressionText:nil];
+		
+		self.requestCloudDeletionOnClose = NO;
+	}
+}
+#endif
+
+#pragma mark -
+#pragma mark SSL Certificate
+
+- (void)onSSLCertificateFingerprintCopyRequested:(id)sender
+{
+	NSString *command = [NSString stringWithFormat:@"/msg NickServ cert add %@", [self.sslCertificateFingerprintField stringValue]];
+	
+	[RZPasteboard() setStringContent:command];
+}
+
+- (void)updateSSLCertificatePage
+{
+	NSString *commonName = nil;
+	NSString *fingerprint = nil;
+	
+	/* Proxies are ran through an older socket engine which means SSL certificate
+	 validatin is not available when it is enabled. This is the check for that. */
+	NSInteger proxyTag = self.proxyTypeButton.selectedTag;
+	
+	BOOL proxyEnabled = NSDissimilarObjects(proxyTag, TXConnectionNoProxyType);
+	
+	[self.sslCertificateChangeCertButton setEnabled:BOOLReverseValue(proxyEnabled)];
+
+	/* Continue normal operations. */
+	if (self.config.identitySSLCertificate && proxyEnabled == NO) {
+		SecKeychainItemRef cert;
+		
+		CFDataRef rawCertData = (__bridge CFDataRef)(self.config.identitySSLCertificate);
+		
+		OSStatus status = SecKeychainItemCopyFromPersistentReference(rawCertData, &cert);
+		
+		if (status == noErr) {
+			/* Get certificate name. */
+			CFStringRef commName;
+			
+			status = SecCertificateCopyCommonName((SecCertificateRef)cert, &commName);
+			
+			if (status == noErr){
+				commonName = (__bridge NSString *)(commName);
+				
+				CFRelease(commName);
+			}
+			
+			/* Get certificate fingerprint. */
+			CFDataRef data = SecCertificateCopyData((SecCertificateRef)cert);
+			
+			if (data) {
+				NSData *certNormData = [NSData dataWithBytes:CFDataGetBytePtr(data) length:CFDataGetLength(data)];
+				
+				fingerprint = [certNormData sha1];
+				
+				CFRelease(data);
+			}
+			
+			/* Cleaning. */
+			CFRelease(cert);
+		}
+	}
+	
+	BOOL hasNoCert = NSObjectIsEmpty(commonName);
+	
+	if (hasNoCert) {
+		self.sslCertificateCommonNameField.stringValue = TXTLS(@"ServerSheetSSLCertificateViewNoCertificateSelected");
+		self.sslCertificateFingerprintField.stringValue = TXTLS(@"ServerSheetSSLCertificateViewNoCertificateSelected");
+	} else {
+		self.sslCertificateCommonNameField.stringValue = commonName;
+		self.sslCertificateFingerprintField.stringValue = [fingerprint uppercaseString];
+	}
+	
+	[self.sslCertificateResetButton setEnabled:BOOLReverseValue(hasNoCert)];
+	[self.sslCertificateFingerprintCopyButton setEnabled:BOOLReverseValue(hasNoCert)];
+}
+
+- (void)onSSLCertificateResetRequested:(id)sender
+{
+	self.config.identitySSLCertificate = nil;
+	
+	[self updateSSLCertificatePage];
+}
+
+- (void)onSSLCertificateChangeRequested:(id)sender
+{
+	/* Before we can present a list of certificates to the end user, we must first
+	 query the keychain and build a list of all of them that exist in there first. */
+    CFArrayRef identities;
+	
+	NSDictionary *query = @{
+		(id)kSecClass		: (id)kSecClassIdentity,
+		(id)kSecMatchLimit	: (id)kSecMatchLimitAll,
+		(id)kSecReturnRef	: (id)kCFBooleanTrue
+	};
+	
+	OSStatus querystatus = SecItemCopyMatching((__bridge CFDictionaryRef)query, (CFTypeRef *)&identities);
+	
+	/* If we have a good list of identities, we present them. */
+	if (querystatus == noErr) {
+		SFChooseIdentityPanel *panel = [SFChooseIdentityPanel sharedChooseIdentityPanel];
+		
+		[panel setInformativeText:TXTFLS(@"ServerSheetSSLCertificateViewSelectIdentityDialgMessage", [self.serverNameField stringValue])];
+		[panel setAlternateButtonTitle:TXTLS(@"CancelButton")];
+		
+		NSInteger returnCode = [panel runModalForIdentities:(__bridge NSArray *)(identities) message:TXTLS(@"ServerSheetSSLCertificateViewSelectIdentityDialogTitle")];
+	
+		/* After the user has chose the identity, we have to update our config value
+		 here and not -save since -save has nothing to reference. */
+		if (returnCode == NSAlertDefaultReturn) {
+			SecIdentityRef identity = [panel identity];
+			
+			CFDataRef certData;
+			
+			if (identity == NULL) {
+				LogToConsole(@"We have no identity."); // Does that even make sense? What did they select?
+			} else {
+				SecCertificateRef identityCert;
+				
+				OSStatus copystatus = SecIdentityCopyCertificate(identity, &identityCert);
+				
+				if (copystatus == noErr) {
+					copystatus = SecKeychainItemCreatePersistentReference((SecKeychainItemRef)identityCert, &certData);
+				
+					if (copystatus == noErr) {
+						self.config.identitySSLCertificate = (__bridge NSData *)(certData);
+					
+						/* Force enable SSL. */
+						if (self.connectionUsesSSLCheck.state == NSOffState) {
+							self.connectionUsesSSLCheck.state = NSOnState;
+							
+							[self useSSLCheckChanged:nil];
+						}
+					}
+					
+					CFRelease(identityCert);
+					CFRelease(certData);
+				}
+			}
+		}
+	} else {
+		LogToConsole(@"Failed to build list of identities from keychain.");
+	}
+	
+	CFSafeRelease(identities);
+	
+	[self updateSSLCertificatePage];
 }
 
 #pragma mark -
@@ -826,7 +1091,7 @@
 				} else {
 					/* Update existing. */
 
-					[self.config.channelList replaceObjectAtIndex:index withObject:c];
+					[self.config.channelList replaceObjectAtIndex:index withObject:config];
 				}
 
 				break;
@@ -868,10 +1133,6 @@
 
 - (void)showAddIgnoreMenu:(id)sender
 {
-	NSRect tableRect = self.ignoreTable.frame;
-	
-	tableRect.origin.y += (tableRect.size.height);
-	tableRect.origin.y += 34;
 
 	NSMenu *addIgnoreMenu = [NSMenu new];
 
@@ -889,7 +1150,7 @@
 	[addIgnoreMenu addItem:item1];
 	[addIgnoreMenu addItem:item2];
     
-	[addIgnoreMenu popUpMenuPositioningItem:nil atLocation:tableRect.origin inView:self.ignoreTable];
+	[addIgnoreMenu popUpMenuPositioningItem:nil atLocation:NSMakePoint(156, 265) inView:self.tabView];
 }
 
 - (void)addIgnore:(id)sender
@@ -1027,7 +1288,11 @@
 		if ([columnId isEqualToString:@"name"]) {
 			return c.channelName;
 		} else if ([columnId isEqualToString:@"pass"]) {
-			return c.secretKey;
+			if (c.secretKeyIsSet) {
+				return [c secretKeyValue];
+			} else {
+				return NSStringEmptyPlaceholder;
+			}
 		} else if ([columnId isEqualToString:@"join"]) {
 			return @(c.autoJoin);
 		}
@@ -1145,6 +1410,7 @@
             case 11: { [self focusView:self.floodControlView	atRow:11]; break; }
 			case 12: { [self focusView:self.networkingView		atRow:12]; break; }
             case 13: { [self focusView:self.proxyServerView		atRow:13]; break; }
+			case 14: { [self focusView:self.sslCertificateView  atRow:14]; break; }
 
             default: { break; }
         }

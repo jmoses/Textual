@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -41,11 +41,12 @@
 @interface TLONickCompletionStatus : NSObject
 @property (nonatomic, strong) NSString *cachedTextFieldStringValue;
 @property (nonatomic, strong) NSString *cachedBackwardCutStringValue;
+@property (nonatomic, strong) NSString *cachedLastCompleteStringValue;
 @property (nonatomic, assign) NSRange lastTextFieldSelectionRange;
 @property (nonatomic, assign) NSRange lastCompletionCompletedRange;
 @property (nonatomic, assign) NSRange lastCompletionFragmentRange;
 @property (nonatomic, assign) NSInteger lastCompletionSelectionIndex;
 
 - (void)completeNick:(BOOL)forward;
-- (void)clear;
+- (void)clear:(BOOL)clearLastValue;
 @end

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
 #import "TextualApplication.h"
 
 @interface TVCMemberList ()
+@property (nonatomic, assign) BOOL beginUpdatesCallRunning;
 @property (nonatomic, strong) id userPopoverTrackingArea;
 @property (nonatomic, assign) BOOL userPopoverMouseIsInView;
 @property (nonatomic, assign) BOOL userPopoverTimerIsActive;
@@ -46,6 +47,40 @@
 @end
 
 @implementation TVCMemberList
+
+- (void)dealloc
+{
+	/* Remove notifications for scroll view. */
+	[RZNotificationCenter() removeObserver:self
+									  name:NSViewBoundsDidChangeNotification
+									object:[self.enclosingScrollView contentView]];
+}
+
+#pragma mark -
+#pragma mark Update Grouping
+
+- (BOOL)updatesArePaging
+{
+	return self.beginUpdatesCallRunning;
+}
+
+- (void)beginGroupedUpdates
+{
+	NSAssertReturn(self.beginUpdatesCallRunning == NO);
+
+	self.beginUpdatesCallRunning = YES;
+	
+	[self beginUpdates];
+}
+
+- (void)endGroupedUpdates
+{
+	NSAssertReturn(self.beginUpdatesCallRunning);
+	
+	self.beginUpdatesCallRunning = NO;
+	
+	[self endUpdates];
+}
 
 #pragma mark -
 #pragma mark Additions/Removal
@@ -225,6 +260,32 @@
 }
 
 #pragma mark -
+#pragma mark Scroll View
+
+- (void)awakeFromNib
+{
+	[RZNotificationCenter() addObserver:self
+							   selector:@selector(scrollViewBoundsDidChangeNotification:)
+								   name:NSViewBoundsDidChangeNotification
+								 object:[self.enclosingScrollView contentView]];
+	
+	[self registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
+}
+
+- (void)scrollViewBoundsDidChangeNotification:(NSNotification *)aNote
+{
+	/* Only responds to events that are related to us… */
+	if ([[aNote object] isEqual:[self.enclosingScrollView contentView]]) {
+		/* Get current mouse position. */
+		NSPoint rawPoint = [self.window convertScreenToBase:[NSEvent mouseLocation]];
+		NSPoint localPoint = [self convertPoint:rawPoint fromView:nil];
+		
+		/* Handle popover. */
+		[self popUserInfoExpansionFrameAtPoint:localPoint ignoreTimerCheck:YES];
+	}
+}
+
+#pragma mark -
 #pragma mark Badge Renderer
 
 - (void)createBadgeRenderer
@@ -234,6 +295,63 @@
 
 		[self.badgeRenderer invalidateBadgeImageCacheAndRebuild];
 	}
+}
+
+#pragma mark -
+#pragma mark Drag and Drop
+
+- (NSInteger)draggedRow:(id <NSDraggingInfo>)sender
+{
+    NSPoint p = [self convertPoint:[sender draggingLocation] fromView:nil];
+	
+    return [self rowAtPoint:p];
+}
+
+- (NSArray *)draggedFiles:(id <NSDraggingInfo>)sender
+{
+    return [[sender draggingPasteboard] propertyListForType:NSFilenamesPboardType];
+}
+
+- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
+{
+    return [self draggingUpdated:sender];
+}
+
+- (NSDragOperation)draggingUpdated:(id <NSDraggingInfo>)sender
+{
+    NSArray *files = [self draggedFiles:sender];
+	
+    if ([files count] > 0 && [self draggedRow:sender] >= 0) {
+        return NSDragOperationCopy;
+    } else {
+        return NSDragOperationNone;
+    }
+}
+
+- (BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender
+{
+    NSArray *files = [self draggedFiles:sender];
+	
+    return ([files count] > 0 && [self draggedRow:sender] >= 0);
+}
+
+- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
+{
+    NSArray *files = [self draggedFiles:sender];
+	
+    if ([files count] > 0) {
+        NSInteger row = [self draggedRow:sender];
+
+        if (row >= 0) {
+			[self.menuController memberSendDroppedFiles:files row:@(row)];
+
+            return YES;
+        } else {
+            return NO;
+        }
+    } else {
+        return NO;
+    }
 }
 
 #pragma mark -

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -81,6 +81,7 @@
 #define RZFontManager()							[NSFontManager sharedFontManager]
 #define RZGraphicsCurrentContext()				[NSGraphicsContext currentContext]
 #define RZMainBundle()							[NSBundle mainBundle]
+#define RZMainOperationQueue()					[NSOperationQueue mainQueue]
 #define RZMainRunLoop()							[NSRunLoop mainRunLoop]
 #define RZMainScreen()							[NSScreen mainScreen]
 #define RZNotificationCenter()					[NSNotificationCenter defaultCenter]
@@ -89,6 +90,7 @@
 #define RZRunningApplication()					[NSRunningApplication currentApplication]
 #define RZSharedApplication()					[NSApplication sharedApplication]
 #define RZSpellChecker()						[NSSpellChecker	sharedSpellChecker]
+#define RZUbiquitousKeyValueStore()				[NSUbiquitousKeyValueStore defaultStore]
 #define RZUserDefaults()						[NSUserDefaults	standardUserDefaults]
 #define RZUserDefaultsController()				[NSUserDefaultsController sharedUserDefaultsController]
 #define RZUserNotificationCenter()				[NSUserNotificationCenter defaultUserNotificationCenter]
@@ -101,7 +103,7 @@
 
 #define BOOLReverseValue(b)						((b == YES) ? NO : YES)
 #define BOOLValueFromObject(b)					PointerIsNotEmpty(b)
-#define CFItemRefToID(s)						((id)(s))
+#define CFSafeRelease(s)						if ((s) != NULL) { CFRelease((s)); }
 #define NSDissimilarObjects(o,n)				((o) != (n))
 
 #define NSAssertReturn(c)						if ((c) == NO) { return; }
@@ -114,10 +116,20 @@
 #define NSObjectIsEmptyAssertLoopContinue(o)	if (NSObjectIsEmpty(o)) { continue; }
 #define NSObjectIsEmptyAssertLoopBreak(o)		if (NSObjectIsEmpty(o)) { break; }
 
+#define NSObjectIsNotEmptyAssert(o)					if (NSObjectIsNotEmpty(o)) { return; }
+#define NSObjectIsNotEmptyAssertReturn(o, r)		if (NSObjectIsNotEmpty(o)) { return (r); }
+#define NSObjectIsNotEmptyAssertLoopContinue(o)		if (NSObjectIsNotEmpty(o)) { continue; }
+#define NSObjectIsNotEmptyAssertLoopBreak(o)		if (NSObjectIsNotEmpty(o)) { break; }
+
 #define PointerIsEmptyAssert(o)					if (PointerIsEmpty(o)) { return; }
 #define PointerIsEmptyAssertReturn(o, r)		if (PointerIsEmpty(o)) { return (r); }
 #define PointerIsEmptyAssertLoopContinue(o)		if (PointerIsEmpty(o)) { continue; }
 #define PointerIsEmptyAssertLoopBreak(o)		if (PointerIsEmpty(o)) { break; }
+
+#define PointerIsNotEmptyAssert(o)					if (PointerIsNotEmpty(o)) { return; }
+#define PointerIsNotEmptyAssertReturn(o, r)			if (PointerIsNotEmpty(o)) { return (r); }
+#define PointerIsNotEmptyAssertLoopContinue(o)		if (PointerIsNotEmpty(o)) { continue; }
+#define PointerIsNotEmptyAssertLoopBreak(o)			if (PointerIsNotEmpty(o)) { break; }
 
 #define NSObjectIsKindOfClassAssert(o,c)				if ([(o) isKindOfClass:[c class]] == NO) { return; }
 #define NSObjectIsKindOfClassAssertReturn(o, c, r)		if ([(o) isKindOfClass:[c class]] == NO) { return (r); }
@@ -155,5 +167,14 @@
 
 /* Just like nweak and uweak, these are useless, but hey, whatever. */
 typedef unsigned long long						TXFSLongInt;
+
+/* Whether to force disable app nap using NSProcessInfo */
+// #define TEXTUAL_BUILT_WITH_APP_NAP_DISABLED
+
+/* Whether to build Textual with Core Data support. */
+/* Disabling it will still use Core Data model defined for 
+ TVCLogControllerHistoricLogFile, but it will not write 
+ or maintain any managed object in a file or in memory. */
+// #define TEXTUAL_BUILT_WITH_CORE_DATA_DISABLED
 
 /* @end */

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@
 
 	[prompt sheetWindowWithQuestion:self.masterController.mainWindow
 							 target:self
-							 action:@selector(importPreflight:)
+							 action:@selector(importPreflight:withOriginalAlert:)
 							   body:TXTLS(@"PreferencesImportPreflightDialogMessage")
 							  title:TXTLS(@"PreferencesImportPreflightDialogTitle")
 					  defaultButton:TXTLS(@"PreferencesImportPreflightDialogSelectFileButton")
@@ -63,7 +63,7 @@
 }
 
 /* Master controller internal handles for import. */
-+ (void)importPreflight:(TLOPopupPromptReturnType)buttonPressed
++ (void)importPreflight:(TLOPopupPromptReturnType)buttonPressed withOriginalAlert:(NSAlert *)originalAlert
 {
 	/* What button? */
 	if (buttonPressed == TLOPopupPromptReturnPrimaryType) {
@@ -88,6 +88,7 @@
 + (void)importPostflight:(NSURL *)pathURL
 {
 	/* The loading screen is a generic way to show something during import. */
+	[self.masterController.mainWindowLoadingScreen hideAll:NO];
 	[self.masterController.mainWindowLoadingScreen popLoadingConfigurationView];
 
 	/* isPopulatingSeeds tells the world to not close the loading screen on state
@@ -109,13 +110,6 @@
 		return;
 	}
 
-	/* Disconnect and clear all. */
-	IRCWorld *theWorld = self.worldController;
-
-	for (IRCClient *u in theWorld.clients) {
-		[u quit];
-	}
-
 	/* Begin import. */
 	NSData *rawData = [NSData dataWithContentsOfURL:pathURL];
 
@@ -124,153 +118,198 @@
 																	 format:NULL
 														   errorDescription:NULL];
 
+	/* Perform actual import if we have the dictionary. */
 	if (plist) {
-		/* The only thing that we should actually be processing from the plist is the
-		 world controller which defines all the clients. After that, shove everything
-		 in NSUserDefaults and call it a day. */
+		/* Import data. */
+		[self importContentsOfDictionary:plist withAutomaticReload:NO];
 
-		for (NSString *key in plist) {
-			if ([key isEqualToString:@"World Controller"]) {
-				/* How we handle the world controller is very sensitive because of the sheer
-				 amount of data contained within it. Most of all the hard work will be done
-				 by createClient:reload: in IRCWorld. However, there are some internal things
-				 we have to update first. Mostly, our UUIDs. Each client, channel, and address
-				 book entry has a unique identifier associated with it. We have to give each
-				 newly imported item a new UUID before doing anything with it. This step cannot
-				 be skipped. */
-
-				NSDictionary *config = [plist dictionaryForKey:key];
-
-				for (NSDictionary *e in config[@"clients"]) {
-					NSMutableDictionary *mut_e = [e mutableCopy];
-
-					/* Reset the client UUID. */
-					[mut_e setObject:[NSString stringWithUUID] forKey:@"uniqueIdentifier"];
-
-					/* Do the channels next. */
-					NSMutableArray *newChannelList = [NSMutableArray array];
-					
-					for (NSDictionary *ce in e[@"channelList"]) {
-						NSMutableDictionary *mut_ce = [ce mutableCopy];
-
-						/* Reset the channel UUID. */
-						[mut_ce setObject:[NSString stringWithUUID] forKey:@"uniqueIdentifier"];
-
-						/* Set new entry. */
-						[newChannelList addObject:mut_ce];
-					}
-
-					[mut_e setObject:newChannelList forKey:@"channelList"];
-
-					/* Do the highlight list. */
-					NSMutableArray *newHighlightList = [NSMutableArray array];
-
-					for (NSDictionary *ce in e[@"highlightList"]) {
-						NSMutableDictionary *mut_ce = [ce mutableCopy];
-
-						/* Reset the channel UUID. */
-						[mut_ce setObject:[NSString stringWithUUID] forKey:@"uniqueIdentifier"];
-
-						/* Set new entry. */
-						[newHighlightList addObject:mut_ce];
-					}
-
-					[mut_e setObject:newHighlightList forKey:@"highlightList"];
-
-					/* Do the ignore list. */
-					NSMutableArray *newIgnoreList = [NSMutableArray array];
-
-					for (NSDictionary *ce in e[@"ignoreList"]) {
-						NSMutableDictionary *mut_ce = [ce mutableCopy];
-
-						/* Reset the ignore UUID. */
-						[mut_ce setObject:[NSString stringWithUUID] forKey:@"uniqueIdentifier"];
-
-						/* Set new entry. */
-						[newIgnoreList addObject:mut_ce];
-					}
-
-					[mut_e setObject:newIgnoreList forKey:@"ignoreList"];
-
-					/* Now that we reset everything… it is safe to create the new client. */					
-					[theWorld createClient:mut_e reload:YES];
-				}
-			} else {
-				[RZUserDefaults() setObject:[plist objectForKey:key] forKey:key];
-			}
-		}
+		/* Do not push the loading screen right away. Add a little delay to give everything
+		 a chance to settle down before presenting the changes to the user. */
+		[self performSelector:@selector(importPostflightCleanup:) withObject:[plist allKeys] afterDelay:1.0];
+	} else {
+		LogToConsole(@"Import failed. Could not read property list.");
 	}
-
-	/* Finish up. */
-	[theWorld destroyAllEvidence];
-	
-	[theWorld save];
-	[theWorld reloadTheme];
-
-	[self.masterController loadWindowState:YES];
-
-	[TPCPreferences cleanUpHighlightKeywords];
-
-	/* Do not push the loading screen right away. Add a little delay to give everything 
-	 a chance to settle down before presenting the changes to the user. */
-	[self performSelector:@selector(importPostflightCleanup) withObject:nil afterDelay:1.0];
 }
 
-+ (void)importPostflightCleanup
+/* Conditional for keys that require special processing during the import process. */
++ (BOOL)isKeyNameExcludedFromNormalImportProcess:(NSString *)key
 {
-	[self.masterController.mainWindowLoadingScreen hideLoadingConfigurationView];
+	return ([key hasPrefix:IRCWorldControllerCloudClientEntryKeyPrefix] ||
+			[key isEqualToString:IRCWorldControllerDefaultsStorageKey] ||
+			[key isEqualToString:IRCWorldControllerCloudDeletedClientsStorageKey] ||
+			[key isEqualToString:TPCPreferencesThemeNameDefaultsKey] ||
+			[key isEqualToString:TPCPreferencesThemeFontNameDefaultsKey]);
+}
 
++ (void)importContentsOfDictionary:(NSDictionary *)aDict
+{
+	[self importContentsOfDictionary:aDict withAutomaticReload:YES];
+}
+
++ (void)importContentsOfDictionary:(NSDictionary *)aDict withAutomaticReload:(BOOL)reloadPreferences
+{
+	/* The expected format of this dictionary should NOT have hashed keys. */
+	 //LogToConsole(@"Dictionary to Import: %@", aDict);
+
+	/* Normal import process. */
+	[aDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+		[self import:obj withKey:key];
+	}];
+
+	/* Perform reload for changed keys. */
+	if (reloadPreferences) {
+		[TPCPreferences performReloadActionForKeyValues:[aDict allKeys]];
+	}
+}
+
++ (void)import:(id)obj withKey:(id)key
+{
+	/* Is it a normal key? */
+	if ([self isKeyNameExcludedFromNormalImportProcess:key] == NO) {
+		[RZUserDefaults() setObject:obj forKey:key];
+	} else {
+		if ([key isEqual:TPCPreferencesThemeNameDefaultsKey])
+		{
+			NSObjectIsKindOfClassAssert(obj, NSString);
+			
+			[TPCPreferences setThemeNameWithExistenceCheck:obj];
+		}
+		else if ([key isEqual:TPCPreferencesThemeFontNameDefaultsKey])
+		{
+			NSObjectIsKindOfClassAssert(obj, NSString);
+			
+			[TPCPreferences setThemeChannelViewFontNameWithExistenceCheck:obj];
+		}
+		else if ([key isEqual:IRCWorldControllerDefaultsStorageKey])
+		{
+			/* It is the world controller! */
+			NSObjectIsKindOfClassAssert(obj, NSDictionary);
+			
+			/* Start import. */
+			NSArray *clientList = [obj objectForKey:@"clients"];
+			
+			NSObjectIsEmptyAssert(clientList);
+			
+			/* Bleh, let's get this over with. */
+			[clientList enumerateObjectsUsingBlock:^(id objd, NSUInteger idx, BOOL *stop) {
+				[self importWorldControllerClientConfiguratoin:objd isCloudBasedImport:NO];
+			}];
+		}
+	}
+}
+
++ (void)importWorldControllerClientConfiguratoin:(NSDictionary *)client isCloudBasedImport:(BOOL)isCloudImport
+{
+	/* Validate that shiznet. */
+	NSObjectIsEmptyAssert(client);
+	
+	/* Create a configuration rep. */
+	IRCClientConfig *config = [[IRCClientConfig alloc] initWithDictionary:client];
+	
+	PointerIsEmptyAssert(config);
+	
+	/* Try to find any clients matching this value. */
+	IRCClient *u = [self.worldController findClientById:[config itemUUID]];
+	
+	/* Handle cloud sync logic. */
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if (isCloudImport) {
+		if (u && [u.config excludedFromCloudSyncing]) {
+			return;
+		}
+	}
+#endif
+	
+	if (u) {
+		[u updateConfig:config fromTheCloud:isCloudImport withSelectionUpdate:YES];
+	} else {
+		[self.worldController createClient:config reload:YES];
+	}
+}
+
++ (void)importPostflightCleanup:(NSArray *)changedKeys
+{
+	/* Update selection. */
+	[self.worldController setupTree];
+
+	/* Reload preferences. */
+	[TPCPreferences performReloadActionForKeyValues:changedKeys];
+
+	/* Finish seeding. */
 	self.worldController.isPopulatingSeeds = NO;
+
+	/* Pop loading screen. */
+	[self.worldController reloadLoadingScreen];
 }
 
 #pragma mark -
 #pragma mark Export
 
+/* Conditional for matching whether we want a key in the exported dictionary. */
++ (BOOL)isKeyNameSupposedToBeIgnored:(NSString *)key
+{
+	if ([key hasPrefix:@"NS"] ||											/* Apple owned prefix. */
+		[key hasPrefix:@"SGT"] ||											/* Apple owned prefix. */
+		[key hasPrefix:@"Apple"] ||											/* Apple owned prefix. */
+		[key hasPrefix:@"WebKit"] ||										/* Apple owned prefix. */
+		[key hasPrefix:@"com.apple."] ||									/* Apple owned prefix. */
+		[key hasPrefix:@"DataDetectorsSettings"] ||							/* Apple owned prefix. */
+
+		[key hasPrefix:@"TXRunCount"] ||									/* Textual owned prefix. */
+		[key hasPrefix:@"TXRunTime"] ||										/* Textual owned prefix. */
+
+		[key hasPrefix:@"System —>"] ||										/* Textual owned prefix. */
+		[key hasPrefix:@"Security ->"] ||									/* Textual owned prefix. */
+		[key hasPrefix:@"Window -> Main Window"] ||							/* Textual owned prefix. */
+		[key hasPrefix:@"Saved Window State —> Internal —> "] ||			/* Textual owned prefix. */
+		[key hasPrefix:@"Saved Window State —> Internal (v2) —> "] ||		/* Textual owned prefix. */
+		[key hasPrefix:@"Text Input Prompt Suppression -> "] ||				/* Textual owned prefix. */
+
+		[key hasPrefix:@"File Transfers -> File Transfer Download Folder Bookmark"]		||		/* Textual owned prefix. */
+
+		[key hasPrefix:@"LogTranscriptDestinationSecurityBookmark"] ||				/* Textual owned prefix. */
+		
+		[key hasPrefix:TPCPreferencesThemeNameMissingLocallyDefaultsKey] ||			/* Textual owned prefix. */
+		[key hasPrefix:TPCPreferencesThemeFontNameMissingLocallyDefaultsKey])		/* Textual owned prefix. */
+	{
+		return YES; // Key has an ignored prefix.
+	}
+
+	return NO;
+}
+
++ (NSDictionary *)exportedPreferencesDictionaryRepresentation
+{
+	return [self exportedPreferencesDictionaryRepresentation:YES];
+}
+
++ (NSDictionary *)exportedPreferencesDictionaryRepresentation:(BOOL)removeJunk
+{
+	/* Gather everything into one big dictionary. */
+	NSDictionary *settings = [RZUserDefaults() dictionaryRepresentation];
+
+	if (removeJunk) {
+		/* Now, it is time for the hashing process. */
+		NSMutableDictionary *fnlsettings = [NSMutableDictionary dictionary];
+
+		[settings enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+			if ([self isKeyNameSupposedToBeIgnored:key] == NO) {
+				[fnlsettings setObject:obj forKey:key];
+			}
+		}];
+
+		return fnlsettings; // Return modified dictionary.
+	}
+
+	return settings;
+}
+
 /* +exportPostflightForURL: handles the actual export. */
 /* This method is also called internally to backup the old configuration file. */
 + (BOOL)exportPostflightForURL:(NSURL *)pathURL filterJunk:(BOOL)removeJunk
 {
-	/* Save the world. Just like superman! */
-	IRCWorld *theWorld = self.worldController;
-
-	[theWorld save];
-
 	/* Gather everything into one big dictionary. */
-	NSDictionary *settings = [RZUserDefaults() dictionaryRepresentation];
-
-	NSMutableDictionary *mutsettings = [settings mutableCopy];
-
-	if (removeJunk) {
-		/* Cocoa filter. */
-		/* There are some Apple defined keys we do not want in our property list. 
-		 We remove those here. */
-		for (NSString *key in settings) {
-			if ([key hasPrefix:@"NS"] ||
-				[key hasPrefix:@"Apple"] ||
-				[key hasPrefix:@"WebKit"] ||
-				[key hasPrefix:@"com.apple."])
-			{
-				[mutsettings removeObjectForKey:key];
-			} else if ([key hasPrefix:@"Saved Window State —> Internal —> "]) {
-				/* While we are going through the list, also remove window frames. */
-				
-				[mutsettings removeObjectForKey:key];
-			}
-		}
-
-		/* Custom filter. */
-		/* Some settings such as log folder scoped bookmark cannot be exported/imported so we will
-		 drop that from our exported dictionary. Other things that cannot be handled is the main 
-		 window frame. Also, any custom styles. */
-		[mutsettings removeObjectForKey:@"LogTranscriptDestinationSecurityBookmark"];
-
-		/* Is it custom style? */
-		NSString *themeName = [settings objectForKey:@"Theme -> Name"];
-
-		if ([themeName hasPrefix:TPCThemeControllerBundledStyleNameCompletePrefix] == NO) { // It is custom.
-			[mutsettings removeObjectForKey:@"Theme -> Name"];
-		}
-	}
+	NSDictionary *mutsettings = [self exportedPreferencesDictionaryRepresentation:removeJunk];
 
 	/* The export will be saved as binary. Two reasons: 1) Discourages user from
 	 trying to tamper with stuff. 2) Smaller, faster. Mostly #1. */

@@ -247,7 +247,6 @@
 				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = SystemProfiler;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Debug;
 		};
@@ -257,7 +256,6 @@
 			buildSettings = {
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = SystemProfiler;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Release;
 		};

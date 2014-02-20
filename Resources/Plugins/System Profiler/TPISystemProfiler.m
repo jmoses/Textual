@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 #import "TPI_SP_SysInfo.h"
 
 @interface TPISystemProfiler ()
-@property (nonatomic, nweak) NSView *preferencePaneView;
+@property (nonatomic, strong) NSView *preferencePaneView;
 @end
 
 @implementation TPISystemProfiler
@@ -50,7 +50,15 @@
 /* Allocation & Deallocation */
 - (void)pluginLoadedIntoMemory:(IRCWorld *)world
 {
-	[NSBundle loadNibNamed:@"TPISystemProfiler" owner:self];
+	NSDictionary *defaults = @{
+	   @"System Profiler Extension -> Feature Disabled -> GPU Model" : @(YES),
+	   @"System Profiler Extension -> Feature Disabled -> Disk Information" : @(YES),
+	   @"System Profiler Extension -> Feature Disabled -> Screen Resolution" : @(YES)
+	};
+	
+	[RZUserDefaults() registerDefaults:defaults];
+	
+	[TPIBundleFromClass() loadCustomNibNamed:@"TPISystemProfiler" owner:self topLevelObjects:nil];
 }
 
 #pragma mark -

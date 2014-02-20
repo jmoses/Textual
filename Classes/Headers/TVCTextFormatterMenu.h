@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -40,14 +40,14 @@
 #define IRCTextFormatterMenuTag			53037
 
 @interface TVCTextFormatterMenu : NSObject
-@property (nonatomic, uweak) TVCTextField *textField;
-@property (nonatomic, nweak) NSMenuItem *formatterMenu;
-@property (nonatomic, nweak) NSMenu *foregroundColorMenu;
-@property (nonatomic, nweak) NSMenu *backgroundColorMenu;
+@property (nonatomic, uweak) TVCTextViewWithIRCFormatter *textField;
+@property (nonatomic, nweak) IBOutlet NSMenuItem *formatterMenu;
+@property (nonatomic, nweak) IBOutlet NSMenu *foregroundColorMenu;
+@property (nonatomic, nweak) IBOutlet NSMenu *backgroundColorMenu;
 @property (nonatomic, assign) BOOL sheetOverrideEnabled;
 
-- (void)enableSheetField:(TVCTextField *)field;
-- (void)enableWindowField:(TVCTextField *)field;
+- (void)enableSheetField:(TVCTextViewWithIRCFormatter *)field;
+- (void)enableWindowField:(TVCTextViewWithIRCFormatter *)field;
 
 - (BOOL)boldSet;
 - (BOOL)italicSet;
@@ -55,15 +55,15 @@
 - (BOOL)foregroundColorSet;
 - (BOOL)backgroundColorSet;
 
-- (void)insertBoldCharIntoTextBox:(id)sender;
-- (void)insertItalicCharIntoTextBox:(id)sender;
-- (void)insertUnderlineCharIntoTextBox:(id)sender;
-- (void)insertForegroundColorCharIntoTextBox:(id)sender;
-- (void)insertBackgroundColorCharIntoTextBox:(id)sender;
+- (IBAction)insertBoldCharIntoTextBox:(id)sender;
+- (IBAction)insertItalicCharIntoTextBox:(id)sender;
+- (IBAction)insertUnderlineCharIntoTextBox:(id)sender;
+- (IBAction)insertForegroundColorCharIntoTextBox:(id)sender;
+- (IBAction)insertBackgroundColorCharIntoTextBox:(id)sender;
 
-- (void)removeBoldCharFromTextBox:(id)sender;
-- (void)removeItalicCharFromTextBox:(id)sender;
-- (void)removeUnderlineCharFromTextBox:(id)sender;
-- (void)removeForegroundColorCharFromTextBox:(id)sender;
-- (void)removeBackgroundColorCharFromTextBox:(id)sender;
+- (IBAction)removeBoldCharFromTextBox:(id)sender;
+- (IBAction)removeItalicCharFromTextBox:(id)sender;
+- (IBAction)removeUnderlineCharFromTextBox:(id)sender;
+- (IBAction)removeForegroundColorCharFromTextBox:(id)sender;
+- (IBAction)removeBackgroundColorCharFromTextBox:(id)sender;
 @end

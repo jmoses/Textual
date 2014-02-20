@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -48,10 +48,16 @@
 - (id)init
 {
     if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDCHighlightListSheet" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCHighlightListSheet" owner:self topLevelObjects:nil];
     }
     
     return self;
+}
+
+- (void)releaseTableViewDataSourceBeforeSheetClosure
+{
+	self.highlightListTable.delegate = nil;
+	self.highlightListTable.dataSource = nil;
 }
 
 - (void)show

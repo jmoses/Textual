@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
 
  *********************************************************************** */
 
-#import "TVCTextField.h" // superclass
+#import "TVCTextViewWithIRCFormatter.h" // superclass
 
 typedef enum IRCTextFormatterEffectType : NSInteger {
 	IRCTextFormatterBoldEffect,
@@ -56,7 +56,7 @@ typedef enum IRCTextFormatterEffectType : NSInteger {
                                        hostmask:(NSString *)hostmask; // Only Textual should be calling this.
 @end
 
-@interface TVCTextField (TVCTextFieldFormattingHelper) 
+@interface TVCTextViewWithIRCFormatter (TVCTextFieldFormattingHelper) 
 - (BOOL)IRCFormatterAttributeSetInRange:(IRCTextFormatterEffectType)effect 
                                   range:(NSRange)limitRange;
 

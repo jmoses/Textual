@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -45,17 +45,26 @@
 #define _inlineImageHeightMax		6000
 #define _inlineImageHeightMin		0
 
+#define _fileTransferPortRangeMin			1024
+#define _fileTransferPortRangeMax			65535
+
 #define _TXWindowToolbarHeight				82
 
 #define _addonsToolbarItemIndex				8
 #define _addonsToolbarItemMultiplier		65
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+@interface TDCPreferencesController ()
+@property (nonatomic, strong) TDCProgressInformationSheet *tcopyStyleFilesProgressIndicator;
+@end
+#endif
 
 @implementation TDCPreferencesController
 
 - (id)init
 {
 	if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDCPreferences" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCPreferences" owner:self topLevelObjects:nil];
 	}
 
 	return self;
@@ -89,6 +98,14 @@
 	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationNewPrivateMessageType]];
 	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationPrivateMessageType]];
 	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationPrivateNoticeType]];
+	[self.alertSounds addObject:NSStringWhitespacePlaceholder];
+	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationFileTransferReceiveRequestedType]];
+	[self.alertSounds addObject:NSStringWhitespacePlaceholder];
+	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationFileTransferSendSuccessfulType]];
+	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationFileTransferReceiveSuccessfulType]];
+	[self.alertSounds addObject:NSStringWhitespacePlaceholder];
+	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationFileTransferSendFailedType]];
+	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationFileTransferReceiveFailedType]];
 
 	[self.scriptsController populateData];
 
@@ -100,10 +117,26 @@
 	[self updateThemeSelection];
     [self updateAlertSelection];
 	[self updateTranscriptFolder];
+	[self updateFileTransferDownloadDestinationFolder];
 
 	[self onChangedAlertType:nil];
 	[self onChangedHighlightType:nil];
-
+	[self onFileTransferIPAddressDetectionMethodChanged:nil];
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	[RZNotificationCenter() addObserver:self
+							   selector:@selector(onCloudSyncControllerDidRebuildContainerCache:)
+								   name:TPCPreferencesCloudSyncUbiquitousContainerCacheWasRebuiltNotification
+								 object:nil];
+	
+	[RZNotificationCenter() addObserver:self
+							   selector:@selector(onCloudSyncControllerDidChangeThemeName:)
+								   name:TPCPreferencesCloudSyncDidChangeGlobalThemeNamePreferenceNotification
+								 object:nil];
+	
+	[self.syncPreferencesToTheCloudButton setState:[TPCPreferences syncPreferencesToTheCloud]];
+#endif
+	
 	[self.setAsDefaultIRCClientButton setHidden:[TPCPreferences isDefaultIRCClient]];
 
 	[self.window restoreWindowStateForClass:self.class];
@@ -144,10 +177,12 @@
 
 	 11: Advanced — Menu.
 
+	 14: File Transfers
 	 7:	IRCop Services
 	 8:	Channel Management
 	 12: Command Scope
 	 6:	Flood Control
+	 15: Incoming Data
 	 5:	Log Location
 	 11: Experimental Settings
 
@@ -158,7 +193,7 @@
 
 - (NSArray *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar
 {
-	NSArray *bundles = [RZPluginManager() pluginsWithPreferencePanes];
+	NSArray *bundles = [THOPluginManagerSharedInstance() pluginsWithPreferencePanes];
 
 	if (NSObjectIsEmpty(bundles)) {
 		return @[@"0", NSToolbarFlexibleSpaceItemIdentifier, @"3", @"1", @"4", @"2", @"9", NSToolbarFlexibleSpaceItemIdentifier, @"10", @"11"];
@@ -194,7 +229,7 @@
 	}
 
 	/* Extensions. */
-	NSArray *bundles = [RZPluginManager() pluginsWithPreferencePanes];
+	NSArray *bundles = [THOPluginManagerSharedInstance() pluginsWithPreferencePanes];
 
 	for (THOPluginItem *plugin in bundles) {
 		NSInteger tagIndex = ([bundles indexOfObject:plugin] + _addonsToolbarItemMultiplier);
@@ -227,9 +262,12 @@
 		case 10:	{ [self firstPane:self.installedAddonsView			selectedItem:10]; break; }
 		case 11:	{ [self firstPane:self.experimentalSettingsView		selectedItem:11]; break; }
 		case 12:	{ [self firstPane:self.commandScopeSettingsView		selectedItem:11]; break; }
+		case 13:	{ [self firstPane:self.iCloudSyncView				selectedItem:11]; break; }
+		case 14:	{ [self firstPane:self.fileTransferView				selectedItem:11]; break; }
+		case 15:	{ [self firstPane:self.incomingDataView				selectedItem:11]; break; }
 		default:
 		{
-			THOPluginItem *plugin = [RZPluginManager() pluginsWithPreferencePanes][pluginIndex];
+			THOPluginItem *plugin = [THOPluginManagerSharedInstance() pluginsWithPreferencePanes][pluginIndex];
 
 			if (plugin) {
 				NSView *prefsView = [plugin.primaryClass preferencesView];
@@ -325,6 +363,26 @@
 - (void)setThemeChannelViewFontName:(id)value { return; }
 - (void)setThemeChannelViewFontSize:(id)value { return; }
 
+- (NSInteger)fileTransferPortRangeStart
+{
+	return [TPCPreferences fileTransferPortRangeStart];
+}
+
+- (NSInteger)fileTransferPortRangeEnd
+{
+	return [TPCPreferences fileTransferPortRangeEnd];
+}
+
+- (void)setFileTransferPortRangeStart:(NSInteger)value
+{
+	[TPCPreferences setFileTransferPortRangeStart:value];
+}
+
+- (void)setFileTransferPortRangeEnd:(NSInteger)value
+{
+	[TPCPreferences setFileTransferPortRangeEnd:value];
+}
+
 - (BOOL)validateValue:(id *)value forKey:(NSString *)key error:(NSError **)error
 {
 	if ([key isEqualToString:@"maxLogLines"]) {
@@ -350,6 +408,38 @@
 			*value = NSNumberWithInteger(_inlineImageHeightMin);
 		} else if (_inlineImageHeightMax < n) {
 			*value = NSNumberWithInteger(_inlineImageHeightMax);
+		}
+	} else if ([key isEqualToString:@"fileTransferPortRangeStart"]) {
+		NSInteger n = [*value integerValue];
+		
+		NSInteger t = [TPCPreferences fileTransferPortRangeEnd];
+		
+		if (n < _fileTransferPortRangeMin) {
+			*value = [NSNumber numberWithInteger:_fileTransferPortRangeMin];
+		} else if (_fileTransferPortRangeMax < n) {
+			*value = [NSNumber numberWithInteger:_fileTransferPortRangeMax];
+		}
+		
+		n = [*value integerValue];
+		
+		if (n > t) {
+			*value = [NSNumber numberWithInteger:t];
+		}
+	} else if ([key isEqualToString:@"fileTransferPortRangeEnd"]) {
+		NSInteger n = [*value integerValue];
+		
+		NSInteger t = [TPCPreferences fileTransferPortRangeStart];
+		
+		if (n < _fileTransferPortRangeMin) {
+			*value = [NSNumber numberWithInteger:_fileTransferPortRangeMin];
+		} else if (_fileTransferPortRangeMax < n) {
+			*value = [NSNumber numberWithInteger:_fileTransferPortRangeMax];
+		}
+		
+		n = [*value integerValue];
+		
+		if (n < t) {
+			*value = [NSNumber numberWithInteger:t];
 		}
 	}
 
@@ -408,7 +498,13 @@
     [self.alertDisableWhileAwayButton setState:alert.disabledWhileAway];
     [self.alertBounceDockIconButton setState:alert.bounceDockIcon];
 
-	[self.alertSoundChoiceButton selectItemAtIndex:[self.availableSounds indexOfObject:alert.alertSound]];
+	NSInteger soundObject = [self.availableSounds indexOfObject:alert.alertSound];
+	
+	if (soundObject == NSNotFound) {
+		[self.alertSoundChoiceButton selectItemAtIndex:0];
+	} else {
+		[self.alertSoundChoiceButton selectItemAtIndex:soundObject];
+	}
 }
 
 - (void)onChangedAlertNotification:(id)sender
@@ -438,7 +534,8 @@
     [alert setDisabledWhileAway:self.alertDisableWhileAwayButton.state];
 }
 
-- (void)onChangedAlertBounceDockIcon:(id)sender {
+- (void)onChangedAlertBounceDockIcon:(id)sender
+{
     TXNotificationType alertType = (TXNotificationType)self.alertTypeChoiceButton.selectedItem.tag;
     
     TDCPreferencesSoundWrapper *alert = [TDCPreferencesSoundWrapper soundWrapperWithEventType:alertType];
@@ -501,6 +598,79 @@
 }
 
 #pragma mark -
+#pragma mark File Transfer Destination Folder Popup
+
+- (void)updateFileTransferDownloadDestinationFolder
+{
+	TDCFileTransferDialog *transferController = [self.menuController fileTransferController];
+
+	NSURL *path = [transferController downloadDestination];
+	
+	NSMenuItem *item = [self.fileTransferDownloadDestinationButton itemAtIndex:0];
+	
+	if (NSObjectIsEmpty(path)) {
+		[item setTitle:TXTLS(@"NoFileTransferDownloadDestinationFolderDefinedMenuItem")];
+		
+		[item setImage:nil];
+	} else {
+		NSImage *icon = [RZWorkspace() iconForFile:[path path]];
+		
+		[icon setSize:NSMakeSize(16, 16)];
+		
+		[item setImage:icon];
+		[item setTitle:[path lastPathComponent]];
+	}
+}
+
+- (void)onFileTransferDownloadDestinationFolderChanged:(id)sender
+{
+	TDCFileTransferDialog *transferController = [self.menuController fileTransferController];
+
+	if ([self.fileTransferDownloadDestinationButton selectedTag] == 2) {
+		NSOpenPanel *d = [NSOpenPanel openPanel];
+		
+		[d setCanChooseFiles:NO];
+		[d setResolvesAliases:YES];
+		[d setCanChooseDirectories:YES];
+		[d setCanCreateDirectories:YES];
+		[d setAllowsMultipleSelection:NO];
+		
+		[d setPrompt:TXTLS(@"SelectButton")];
+		
+		[d beginSheetModalForWindow:self.window completionHandler:^(NSInteger returnCode) {
+			[self.fileTransferDownloadDestinationButton selectItemAtIndex:0];
+			
+			if (returnCode == NSOKButton) {
+				NSURL *pathURL = [d.URLs safeObjectAtIndex:0];
+				
+				NSError *error = nil;
+				
+				NSData *bookmark = [pathURL bookmarkDataWithOptions:NSURLBookmarkCreationWithSecurityScope
+									 includingResourceValuesForKeys:nil
+													  relativeToURL:nil
+															  error:&error];
+				
+				if (error) {
+					LogToConsole(@"Error creating bookmark for URL (%@): %@", pathURL, [error localizedDescription]);
+				} else {
+					[transferController setDownloadDestinationFolder:bookmark];
+				}
+				
+				[self updateFileTransferDownloadDestinationFolder];
+			}
+		}];
+	}
+	else if ([self.fileTransferDownloadDestinationButton selectedTag] == 3)
+	{
+		[self.fileTransferDownloadDestinationButton selectItemAtIndex:0];
+
+		[transferController setDownloadDestinationFolder:nil];
+
+		[self updateFileTransferDownloadDestinationFolder];
+	}
+}
+
+#pragma mark -
 #pragma mark Transcript Folder Popup
 
 - (void)updateTranscriptFolder
@@ -511,13 +681,15 @@
 
 	if (NSObjectIsEmpty(path)) {
 		[item setTitle:TXTLS(@"NoLogLocationDefinedMenuItem")];
+		
+		[item setImage:nil];
 	} else {
 		NSImage *icon = [RZWorkspace() iconForFile:[path path]];
 
 		[icon setSize:NSMakeSize(16, 16)];
 
 		[item setImage:icon];
-		[item setTitle:[path.lastPathComponent decodeURIFragement]];
+		[item setTitle:[path lastPathComponent]];
 	}
 }
 
@@ -531,9 +703,11 @@
 		[d setCanChooseDirectories:YES];
 		[d setCanCreateDirectories:YES];
 		[d setAllowsMultipleSelection:NO];
+		
+		[d setPrompt:TXTLS(@"SelectButton")];
 
 		[d beginSheetModalForWindow:self.window completionHandler:^(NSInteger returnCode) {
-			[self.transcriptFolderButton selectItem:[self.transcriptFolderButton itemAtIndex:0]];
+			[self.transcriptFolderButton selectItemAtIndex:0];
 
 			if (returnCode == NSOKButton) {
 				NSURL *pathURL = [d.URLs safeObjectAtIndex:0];
@@ -555,6 +729,14 @@
 			}
 		}];
 	}
+	else if ([self.transcriptFolderButton selectedTag] == 3)
+	{
+		[self.transcriptFolderButton selectItemAtIndex:0];
+		
+		[TPCPreferences setTranscriptFolder:nil];
+		
+		[self updateTranscriptFolder];
+	}
 }
 
 #pragma mark -
@@ -567,10 +749,23 @@
 	NSInteger tag = 0;
 
 	NSArray *paths = @[[TPCPreferences bundledThemeFolderPath],
-					[TPCPreferences customThemeFolderPath]];
+					   [TPCPreferences customThemeFolderPath],
+					   
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+					   [TPCPreferences cloudCustomThemeCachedFolderPath],
+#endif
+					   
+					   ];
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	/* This path does not always exist right away. */
+	BOOL cloudPathExists = ([paths[2] length] > 0);
+#endif
 
 	for (NSString *path in paths) {
 		NSMutableSet *set = [NSMutableSet set];
+		
+		NSAssertReturnLoopContinue(path.length > 0);
 
 		NSArray *files = [RZFileManager() contentsOfDirectoryAtPath:path error:NULL];
 
@@ -580,12 +775,34 @@
 			if ([path isEqualToString:paths[0]]) {
 				/* If a custom theme with the same name of this bundled theme exists,
 				 then ignore the bundled them. Custom themes always take priority. */
-
 				NSString *cfip = [paths[1] stringByAppendingPathComponent:filename];
 
 				if ([RZFileManager() fileExistsAtPath:cfip]) {
 					continue;
 				}
+				
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+				if (cloudPathExists) {
+					/* Perform same check for cloud based themes too. */
+					cfip = [paths[2] stringByAppendingPathComponent:filename];
+
+					if ([RZFileManager() fileExistsAtPath:cfip]) {
+						continue;
+					}
+				}
+			}
+			
+			/* Also select cloud styles over local ones. */
+			if (cloudPathExists && [path isEqualToString:paths[1]]) {
+				/* If a custom theme with the same name of this bundled theme exists,
+				 then ignore the bundled them. Custom themes always take priority. */
+				NSString *cfip = [paths[2] stringByAppendingPathComponent:filename];
+				
+				if ([RZFileManager() fileExistsAtPath:cfip]) {
+					continue;
+				}
+#endif
+				
 			}
 
 			NSString *cssfilelocal = [path stringByAppendingPathComponent:[file stringByAppendingString:@"/design.css"]];
@@ -600,31 +817,27 @@
 
 		files = [set.allObjects sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
 
-		if (NSObjectIsNotEmpty(files)) {
-			NSInteger i = 0;
+		for (NSString *f in files) {
+			NSMenuItem *cell = [NSMenuItem menuItemWithTitle:f target:nil action:nil];
 
-			for (NSString *f in files) {
-				NSMenuItem *cell = [NSMenuItem menuItemWithTitle:f target:nil action:nil];
+			[cell setTag:tag];
 
-				[cell setTag:tag];
-
-				[self.themeSelectionButton.menu addItem:cell];
-
-				i += 1;
-			}
+			[self.themeSelectionButton.menu addItem:cell];
 		}
 
-		tag += 1;
+		/* Tag can only be 1 or 0. 0 for bundled. 1 for custom. */
+		if (tag == 0) {
+			tag = 1;
+		}
 	}
 
 	// ---- //
 
-	NSString *kind = [TPCThemeController extractThemeSource:[TPCPreferences themeName]];
-	NSString *name = [TPCThemeController extractThemeName:[TPCPreferences themeName]];
+	NSString *name = [self.themeController name];
 
 	NSInteger targetTag = 0;
 
-	if ([kind isEqualToString:TPCThemeControllerBundledStyleNameBasicPrefix] == NO) {
+	if ([self.themeController isBundledTheme] == NO) {
 		targetTag = 1;
 	}
 
@@ -662,28 +875,29 @@
 
 	[self onChangedStyle:nil];
 
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadServerListAction];
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadMemberListAction];
+
 	// ---- //
 
 	NSMutableString *sf = [NSMutableString string];
 
-	TPCThemeController *themeController = self.masterController.themeController;
-
-	if (NSObjectIsNotEmpty(themeController.customSettings.nicknameFormat)) {
+	if (NSObjectIsNotEmpty(self.themeController.customSettings.nicknameFormat)) {
 		[sf appendString:TXTLS(@"ThemeChangeOverridePromptNicknameFormat")];
 		[sf appendString:NSStringNewlinePlaceholder];
 	}
 
-	if (NSObjectIsNotEmpty(themeController.customSettings.timestampFormat)) {
+	if (NSObjectIsNotEmpty(self.themeController.customSettings.timestampFormat)) {
 		[sf appendString:TXTLS(@"ThemeChangeOverridePromptTimestampFormat")];
 		[sf appendString:NSStringNewlinePlaceholder];
 	}
 
-	if (themeController.customSettings.channelViewFont) {
+	if (self.themeController.customSettings.channelViewFont) {
 		[sf appendString:TXTLS(@"ThemeChangeOverridePromptChannelFont")];
 		[sf appendString:NSStringNewlinePlaceholder];
 	}
 
-	if (themeController.customSettings.forceInvertSidebarColors) {
+	if (self.themeController.customSettings.forceInvertSidebarColors) {
 		[sf appendString:TXTLS(@"ThemeChangeOverridePromptWindowColors")];
 		[sf appendString:NSStringNewlinePlaceholder];
 	}
@@ -696,7 +910,7 @@
 
 	[prompt sheetWindowWithQuestion:[NSApp keyWindow]
 							 target:[TLOPopupPrompts class]
-							 action:@selector(popupPromptNilSelector:)
+							 action:@selector(popupPromptNilSelector:withOriginalAlert:)
 							   body:TXTFLS(@"ThemeChangeOverridePromptMessage", item.title, tsf)
 							  title:TXTLS(@"ThemeChangeOverridePromptTitle")
 					  defaultButton:TXTLS(@"OkButton")
@@ -772,63 +986,6 @@
 	[self performSelector:@selector(editTable:) withObject:self.excludeKeywordsTable afterDelay:0.3];
 }
 
-- (void)onChangedInputHistoryScheme:(id)sender
-{
-	TXMasterController *master = self.masterController;
-
-	if (master.inputHistory) {
-		master.inputHistory = nil;
-	}
-
-	for (IRCClient *c in self.worldController.clients) {
-		if (c.inputHistory) {
-			c.inputHistory = nil;
-		}
-
-		if ([TPCPreferences inputHistoryIsChannelSpecific]) {
-			c.inputHistory = [TLOInputHistory new];
-		}
-
-		for (IRCChannel *u in c.channels) {
-			if (u.inputHistory) {
-				u.inputHistory = nil;
-			}
-
-			if ([TPCPreferences inputHistoryIsChannelSpecific]) {
-				u.inputHistory = [TLOInputHistory new];
-			}
-		}
-	}
-
-	if ([TPCPreferences inputHistoryIsChannelSpecific] == NO) {
-		master.inputHistory = [TLOInputHistory new];
-	}
-}
-
-- (void)onChangedStyle:(id)sender
-{
-	[self.worldController reloadTheme];
-
-	[self.masterController.inputTextField updateTextDirection];
-}
-
-- (void)onChangedMainWindowSegmentedController:(id)sender
-{
-	[self.masterController reloadSegmentedControllerOrigin];
-}
-
-- (void)onChangedUserListModeColor:(id)sender
-{
-	[self.masterController.memberList.badgeRenderer invalidateBadgeImageCacheAndRebuild];
-
-	[self.masterController.memberList reloadAllDrawings];
-}
-
-- (void)onChangedMainInputTextFieldFontSize:(id)sender
-{
-	[self.masterController.inputTextField updateTextBoxBasedOnPreferredFontSize];
-}
-
 - (void)onResetUserListModeColorsToDefaults:(id)sender
 {
 	TVCMemberList *memberList = self.masterController.memberList;
@@ -857,76 +1014,80 @@
 	[self onChangedUserListModeColor:sender];
 }
 
+- (void)onChangedInputHistoryScheme:(id)sender
+{
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadInputHistoryScopeAction];
+}
+
 - (void)onChangedSidebarColorInversion:(id)sender
 {
-	[self.masterController.serverList updateBackgroundColor];
-	[self.masterController.serverList reloadAllDrawingsIgnoringOtherReloads];
-
-	[self.masterController.memberList reloadAllUserInterfaceElements];
-
-	[self.masterController.serverSplitView setNeedsDisplay:YES];
-	[self.masterController.memberSplitView setNeedsDisplay:YES];
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadServerListAction];
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadMemberListAction];
 
 	[self.worldController executeScriptCommandOnAllViews:@"sidebarInversionPreferenceChanged" arguments:@[] onQueue:NO];
 }
 
-- (void)openPathToThemesCallback:(TLOPopupPromptReturnType)returnCode
+- (void)onChangedStyle:(id)sender
 {
-	NSString *name = [TPCThemeController extractThemeName:[TPCPreferences themeName]];
-
-	if (returnCode == TLOPopupPromptReturnSecondaryType) {
-		return;
-	}
-
-	if (returnCode == TLOPopupPromptReturnPrimaryType) {
-		NSString *path = [[TPCPreferences bundledThemeFolderPath] stringByAppendingPathComponent:name];
-
-		[RZWorkspace() openFile:path];
-	} else {
-		NSString *newpath = [[TPCPreferences customThemeFolderPath]	stringByAppendingPathComponent:name];
-		NSString *oldpath = [[TPCPreferences bundledThemeFolderPath] stringByAppendingPathComponent:name];
-
-		NSError *copyError;
-
-		[RZFileManager() copyItemAtPath:oldpath toPath:newpath error:&copyError];
-
-		if (copyError) {
-			LogToConsole(@"%@", [copyError localizedDescription]);
-		} else {
-			[RZWorkspace() openFile:newpath];
-
-			NSString *newThemeLocal = [TPCThemeController buildUserFilename:name];
-
-			[TPCPreferences setThemeName:newThemeLocal];
-
-			[self updateThemeSelection];
-		}
-	}
+	//[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadStyleAction]; // Text direction will reload it too.
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadTextDirectionAction];
 }
 
-- (void)onOpenPathToThemes:(id)sender
+- (void)onChangedMainWindowSegmentedController:(id)sender
 {
-	NSString *kind = [TPCThemeController extractThemeSource:[TPCPreferences themeName]];
-	NSString *name = [TPCThemeController extractThemeName:[TPCPreferences themeName]];
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadTextFieldSegmentedControllerOriginAction];
+}
 
-    if ([kind isEqualIgnoringCase:@"resource"]) {
-		TLOPopupPrompts *prompt = [TLOPopupPrompts new];
+- (void)onChangedUserListModeColor:(id)sender
+{
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadMemberListUserBadgesAction];
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadMemberListAction];
+}
 
-		[prompt sheetWindowWithQuestion:[NSApp keyWindow]
-								 target:self
-								 action:@selector(openPathToThemesCallback:)
-								   body:TXTFLS(@"OpeningLocalStyleResourcesMessage", name)
-								  title:TXTLS(@"OpeningLocalStyleResourcesTitle")
-						  defaultButton:TXTLS(@"ContinueButton")
-						alternateButton:TXTLS(@"CancelButton")
-							otherButton:TXTLS(@"OpeningLocalStyleResourcesCopyButton")
-						 suppressionKey:@"opening_local_style"
-						suppressionText:nil];
-    } else {
-		NSString *path = [[TPCPreferences customThemeFolderPath] stringByAppendingPathComponent:name];
+- (void)onChangedMainInputTextFieldFontSize:(id)sender
+{
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadTextFieldFontSizeAction];
+}
 
+- (void)onFileTransferIPAddressDetectionMethodChanged:(id)sender
+{
+	TXFileTransferIPAddressDetectionMethod detectionMethod = [TPCPreferences fileTransferIPAddressDetectionMethod];
+	
+	[self.fileTransferManuallyEnteredIPAddressField setEnabled:(detectionMethod == TXFileTransferIPAddressManualDetectionMethod)];
+}
+
+- (void)onChangedHighlightLogging:(id)sender
+{
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadHighlightLoggingAction];
+}
+
+- (void)onChangedUserListModeSortOrder:(id)sender
+{
+	[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadMemberListSortOrderAction];
+}
+
+- (void)onOpenPathToCloudFolder:(id)sender
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if ([self.masterController.cloudSyncManager ubiquitousContainerIsAvailable] == NO) {
+		TLOPopupPrompts *popup = [TLOPopupPrompts new];
+		
+		[popup sheetWindowWithQuestion:self.window
+								target:[TLOPopupPrompts class]
+								action:@selector(popupPromptNilSelector:withOriginalAlert:)
+								  body:TXTLS(@"iCloudSyncServicesNotAvailableDialogMessage")
+								 title:TXTLS(@"iCloudSyncServicesNotAvailableDialogTitle")
+						 defaultButton:TXTLS(@"OkButton")
+					   alternateButton:nil
+						   otherButton:nil
+						suppressionKey:nil
+					   suppressionText:nil];
+	} else {
+		NSString *path = [TPCPreferences applicationUbiquitousContainerPath];
+		
 		[RZWorkspace() openFile:path];
-    }
+	}
+#endif
 }
 
 - (void)onOpenPathToScripts:(id)sender
@@ -934,29 +1095,303 @@
 	[RZWorkspace() openFile:[TPCPreferences applicationSupportFolderPath]];
 }
 
-- (void)onChangedHighlightLogging:(id)sender
-{
-	IRCWorld *world = TPCPreferences.masterController.world;
-
-	if ([TPCPreferences logHighlights] == NO) {
-		for (IRCClient *u in world.clients) {
-			[u.highlights removeAllObjects];
-		}
-	}
-}
-
 - (void)setTextualAsDefaultIRCClient:(id)sender
 {
 	[TPCPreferences defaultIRCClientPrompt:YES];
 }
 
-- (void)onChangedUserListModeSortOrder:(id)sender
+- (void)onChangedCloudSyncingServices:(id)sender
 {
-	IRCChannel *channel = self.worldController.selectedChannel;
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if ([TPCPreferences syncPreferencesToTheCloud] == NO) {
+		TLOPopupPrompts *popup = [TLOPopupPrompts new];
 
-	if (channel) {
-		[channel reloadDataForTableViewBySortingMembers];
+		[popup sheetWindowWithQuestion:self.window
+								target:[TLOPopupPrompts class]
+								action:@selector(popupPromptNilSelector:withOriginalAlert:)
+								  body:TXTLS(@"iCloudSyncServicesSupportDisabledDialogMessage")
+								 title:TXTLS(@"iCloudSyncServicesSupportDisabledDialogTitle")
+						 defaultButton:TXTLS(@"OkButton")
+					   alternateButton:nil
+						   otherButton:nil
+						suppressionKey:nil
+					   suppressionText:nil];
+	} else {
+		/* Poll server for latest. */
+		[RZUbiquitousKeyValueStore() synchronize];
+		
+		[self.masterController.cloudSyncManager synchronizeFromCloud];
 	}
+#endif
+}
+
+- (void)onChangedCloudSyncingServicesServersOnly:(id)sender
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if ([TPCPreferences syncPreferencesToTheCloud] && [TPCPreferences syncPreferencesToTheCloudLimitedToServers] == NO) {
+		/* Poll server for latest. */
+		[RZUbiquitousKeyValueStore() synchronize];
+		
+		[self.masterController.cloudSyncManager synchronizeFromCloud];
+	}
+#endif
+}
+
+- (void)onPurgeOfCloudDataRequestedCallback:(TLOPopupPromptReturnType)returnCode withOriginalAlert:(NSAlert *)originalAlert
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if (returnCode == TLOPopupPromptReturnSecondaryType) {
+		[self.masterController.cloudSyncManager purgeDataStoredWithCloud];
+	}
+#endif
+}
+
+- (void)onPurgeOfCloudFilesRequestedCallback:(TLOPopupPromptReturnType)returnCode withOriginalAlert:(NSAlert *)originalAlert
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if (returnCode == TLOPopupPromptReturnSecondaryType) {
+		NSString *path = [self.masterController.cloudSyncManager ubiquitousContainerURLPath];
+		
+		/* Try to see if we even have a path… */
+		if (NSObjectIsEmpty(path)) {
+			LogToConsole(@"Cannot empty iCloud files at this time because iCloud is not available.");
+			
+			return;
+		}
+		
+		/* Delete styles folder. */
+		NSError *delError;
+		
+		[RZFileManager() removeItemAtPath:[TPCPreferences cloudCustomThemeFolderPath] error:&delError];
+		
+		if (delError) {
+			LogToConsole(@"Delete Error: %@", [delError localizedDescription]);
+		}
+		
+		/* Delete local caches. */
+		[RZFileManager() removeItemAtPath:[TPCPreferences cloudCustomThemeCachedFolderPath] error:&delError];
+		
+		if (delError) {
+			LogToConsole(@"Delete Error: %@", [delError localizedDescription]);
+		}
+		
+		// We do not call performValidationForKeyValues here because the
+		// metadata query will do that for us once we change the direcoty by deleting.
+	}
+#endif
+}
+
+- (void)onPurgeOfCloudFilesRequested:(id)sender
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	TLOPopupPrompts *popup = [TLOPopupPrompts new];
+	
+	[popup sheetWindowWithQuestion:self.window
+							target:self
+							action:@selector(onPurgeOfCloudFilesRequestedCallback:withOriginalAlert:)
+							  body:TXTLS(@"iCloudSyncDeleteAllFilesDialogMessage")
+							 title:TXTLS(@"iCloudSyncDeleteAllFilesDialogTitle")
+					 defaultButton:TXTLS(@"CancelButton")
+				   alternateButton:TXTLS(@"ContinueButton")
+					   otherButton:nil
+					suppressionKey:nil
+				   suppressionText:nil];
+#endif
+}
+
+- (void)onPurgeOfCloudDataRequested:(id)sender
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	TLOPopupPrompts *popup = [TLOPopupPrompts new];
+
+	[popup sheetWindowWithQuestion:self.window
+							target:self
+							action:@selector(onPurgeOfCloudDataRequestedCallback:withOriginalAlert:)
+							  body:TXTLS(@"iCloudSyncDeleteAllDataDialogMessage")
+							 title:TXTLS(@"iCloudSyncDeleteAllDataDialogTitle")
+					 defaultButton:TXTLS(@"CancelButton")
+				   alternateButton:TXTLS(@"ContinueButton")
+					   otherButton:nil
+					suppressionKey:nil
+				   suppressionText:nil];
+#endif
+}
+
+- (void)openPathToThemesCallback:(TLOPopupPromptReturnType)returnCode withOriginalAlert:(NSAlert *)originalAlert
+{
+	NSString *name = [self.themeController name];
+
+	if (returnCode == TLOPopupPromptReturnSecondaryType) {
+		return;
+	}
+	
+	NSString *oldpath = [self.themeController actualPath];
+	
+	if (returnCode == TLOPopupPromptReturnPrimaryType) {
+		[RZWorkspace() openFile:oldpath];
+	} else {
+		BOOL copyingToCloud = NO;
+		
+		NSString *newpath = [[TPCPreferences customThemeFolderPath]	stringByAppendingPathComponent:name];
+		
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+		/* Check to see if the cloud path exists first… */
+		if ([self.masterController.cloudSyncManager ubiquitousContainerIsAvailable]) {
+			newpath = [[TPCPreferences cloudCustomThemeFolderPath] stringByAppendingPathComponent:name];
+			
+			copyingToCloud = YES;
+		}
+#endif
+		
+		/* Present progress sheet. */
+		TDCProgressInformationSheet *ps = [TDCProgressInformationSheet new];
+
+		[originalAlert.window orderOut:nil];
+		
+		[ps startWithWindow:self.window];
+		
+		/* Continue with a normal copy. */
+		NSError *copyError;
+
+		[RZFileManager() copyItemAtPath:oldpath toPath:newpath error:&copyError];
+
+		if (copyError) {
+			LogToConsole(@"%@", [copyError localizedDescription]);
+			
+			[ps stop];
+		} else {
+			if (copyingToCloud == NO) {
+				[RZWorkspace() openFile:newpath];
+			}
+			
+			NSString *newThemeLocal = [TPCThemeController buildUserFilename:name];
+
+			[TPCPreferences setThemeName:newThemeLocal];
+			
+			if (copyingToCloud == NO) {
+				[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadStyleWithTableViewsAction];
+			}
+			
+			if (copyingToCloud == NO) {
+				/* Notification for cloud cache rebuilds will do this for us. */
+				[self updateThemeSelection];
+				
+				[ps stop];
+			} else {
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+				self.tcopyStyleFilesProgressIndicator = ps;
+#endif
+			}
+		}
+	}
+}
+
+- (void)onOpenPathToThemes:(id)sender
+{
+    if ([self.themeController isBundledTheme]) {
+		TLOPopupPrompts *prompt = [TLOPopupPrompts new];
+
+		NSString *dialogMessage = @"OpeningLocalStyleResourcesNormalMessage";
+		NSString *copyButton = @"OpeningLocalStyleResourcesNormalCopyButton";
+		
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+		if ([self.masterController.cloudSyncManager ubiquitousContainerIsAvailable]) {
+			dialogMessage = @"OpeningLocalStyleResourcesCloudMessage";
+			copyButton = @"OpeningLocalStyleResourcesCloudCopyButton";
+		}
+#endif
+		
+		[prompt sheetWindowWithQuestion:[NSApp keyWindow]
+								 target:self
+								 action:@selector(openPathToThemesCallback:withOriginalAlert:)
+								   body:TXTLS(dialogMessage)
+								  title:TXTLS(@"OpeningLocalStyleResourcesTitle")
+						  defaultButton:TXTLS(@"ContinueButton")
+						alternateButton:TXTLS(@"CancelButton")
+							otherButton:TXTLS(copyButton)
+						 suppressionKey:nil
+						suppressionText:nil];
+    } else {
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+		BOOL containerAvlb = [self.masterController.cloudSyncManager ubiquitousContainerIsAvailable];
+		
+		if (containerAvlb) {
+			if ([self.themeController storageLocation] == TPCThemeControllerStorageCustomLocation) {
+				/* If the theme exists in app support folder, but cloud syncing is available,
+				 then offer to sync it to the cloud. */
+				
+				TLOPopupPrompts *prompt = [TLOPopupPrompts new];
+				
+				[prompt sheetWindowWithQuestion:[NSApp keyWindow]
+										 target:self
+										 action:@selector(openPathToThemesCallback:withOriginalAlert:)
+										   body:TXTLS(@"OpeningLocalCustomStyleResourcesCloudMessage")
+										  title:TXTLS(@"OpeningLocalStyleResourcesTitle")
+								  defaultButton:TXTLS(@"ContinueButton")
+								alternateButton:TXTLS(@"CancelButton")
+									otherButton:TXTLS(@"OpeningLocalStyleResourcesCloudCopyButton")
+								 suppressionKey:nil
+								suppressionText:nil];
+				
+				return;
+			}
+		} else {
+			if ([self.themeController storageLocation] == TPCThemeControllerStorageCloudLocation) {
+				/* If the current theme is stored in the cloud, but our container is not available, then
+				 we have to tell the user we can't open the files right now. */
+				
+				TLOPopupPrompts *prompt = [TLOPopupPrompts new];
+				
+				[prompt sheetWindowWithQuestion:self.window
+										 target:[TLOPopupPrompts class]
+										 action:@selector(popupPromptNilSelector:withOriginalAlert:)
+										   body:TXTLS(@"iCloudSyncServicesNotAvailableDialogMessage")
+										  title:TXTLS(@"iCloudSyncServicesNotAvailableDialogTitle")
+								  defaultButton:TXTLS(@"OkButton")
+								alternateButton:nil
+									otherButton:nil
+								 suppressionKey:nil
+								suppressionText:nil];
+			}
+			
+			return;
+		}
+#endif
+		
+		/* pathOfTheme… is called to ignore the cloud cache location. */
+		NSString *filepath = [self.themeController actualPath];
+		
+		[RZWorkspace() openFile:filepath];
+    }
+}
+
+#pragma mark -
+#pragma mark Cloud Work
+
+- (void)onCloudSyncControllerDidChangeThemeName:(NSNotification *)aNote
+{
+	[self updateThemeSelection];
+}
+
+- (void)onCloudSyncControllerDidRebuildContainerCache:(NSNotification *)aNote
+{
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	/* This progress indicator existing means we have to open the path to the
+	 current theme. */
+	if (self.tcopyStyleFilesProgressIndicator) {
+		[self.tcopyStyleFilesProgressIndicator stop];
+		self.tcopyStyleFilesProgressIndicator = nil;
+		
+		[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadStyleWithTableViewsAction];
+		
+		/* pathOfTheme… is called to ignore the cloud cache location. */
+		NSString *filepath = [self.themeController actualPath];
+		
+		[RZWorkspace() openFile:filepath];
+	}
+	
+	[self updateThemeSelection];
+#endif
 }
 
 #pragma mark -
@@ -964,6 +1399,11 @@
 
 - (void)windowWillClose:(NSNotification *)note
 {
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	[RZNotificationCenter() removeObserver:self name:TPCPreferencesCloudSyncUbiquitousContainerCacheWasRebuiltNotification object:nil];
+	[RZNotificationCenter() removeObserver:self name:TPCPreferencesCloudSyncDidChangeGlobalThemeNamePreferenceNotification object:nil];
+#endif
+	
 	[self.window saveWindowStateForClass:self.class];
 
 	[TPCPreferences cleanUpHighlightKeywords];

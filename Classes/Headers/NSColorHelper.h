@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -39,12 +39,11 @@
 #import "TextualApplication.h"
 
 #define TXCalibratedRGBColor(r, g, b)		([NSColor internalCalibratedRed:r green:g blue:b alpha:1.0])
+#define TXCalibratedDeviceColor(r, g, b)	([NSColor internalDeviceRed:r green:g blue:b alpha:1.0])
 
 @interface NSColor (TXColorHelper)
 + (id)defineUserInterfaceItem:(id)normalItem invertedItem:(id)invertedItem;
 + (id)defineUserInterfaceItem:(id)normalItem invertedItem:(id)invertedItem withOperator:(BOOL)specialCondition;
-
-- (CGColorRef)aCGColor;
 
 - (NSColor *)invertColor;
 
@@ -75,11 +74,4 @@
 + (NSColor *)outlineViewHeaderDisabledTextColor;
 
 + (NSColor *)internalCalibratedRed:(CGFloat)red green:(CGFloat)green blue:(CGFloat)blue alpha:(CGFloat)alpha;
-@end
-
-/* Gradients are color related so just slap this in here… */
-@interface NSGradient (TXGradientHelper)
-+ (NSGradient *)sourceListBackgroundGradientColor;
-
-+ (NSGradient *)gradientWithStartingColor:(NSColor *)startingColor endingColor:(NSColor *)endingColor;
 @end

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -43,8 +43,6 @@
 "ApplicationWantsToTerminatePromptMessage" = "Quitting will disconnect you from any IRC server that you are connected to until you restart Textual.";
 "ApplicationWantsToTerminatePromptTitle" = "Do you want to quit Textual?";
 
-"AutoConnectAfterWakeUpHostNotReachable" = "%1$@ is not reachable. Delaying auto connect after waking up for %2$@ seconds. To force connect, use command \002/conn\002 or right-click server and click Connect.";
-
 "BlowfishEncryptionFailed" = "Encryption of message failed; not sending to server.";
 "BlowfishEncryptionKeyChanged" = "Encryption key changed; adjusting accordingly.";
 "BlowfishEncryptionStarted" = "Encryption started.";
@@ -55,8 +53,10 @@
 
 "CancelButton" = "Cancel";
 
+"ChannelApplicationTitleLocalDivider" = " — ";
 "ChannelApplicationTitleModeValue" = " (%@)";
 "ChannelApplicationTitleUserCount" = " (%ld Users)";
+"ChannelApplicationTitleLocalNicknameAndNetwork" = "%1$@ on %2$@";
 
 "ChannelDeletePromptMessage" = "There is no undo and all data related to this channel, except for logs, will be erased.";
 "ChannelDeletePromptTitle" = "Do you want to delete the selection?";
@@ -78,18 +78,6 @@
 
 "CopyLogAsHTMLMenuItem" = "Copy Log as HTML";
 
-"ChannelKeySetDetectedDialogTitle" = "Secret Key Changed";
-"ChannelKeySetDetectedDialogMessage" = "The secret key for the channel %1$@ was changed by %2$@ to \"%3$@\" — would you like Textual to automatically update the channel configuration to remember this new key?";
-"ChannelKeySetDetectedDialogSuppressionMessage" = "Automatically update secret key";
-
-"ChannelKeyRemovalDetectedDialogTitle" = "Secret Key Changed";
-"ChannelKeyRemovalDetectedDialogMessage" = "The configured secret key for the channel %@ is no longer set. Would you like Textual to forget it?";
-"ChannelKeyRemovalDetectedialogSuppressionMessage" = "Automatically update secret key";
-
-"ChannelOldKeyDetectedDialogTitle" = "Secret Key Found";
-"ChannelOldKeyDetectedDialogMessage" = "Textual has found a secret key set for the channel %@. Would you like the configuration for this channel updated to remember the key?";
-"ChannelOldKeyDetectedDialogSuppressionMessage" = "Automatically update secret key";
-
 "DCCRequestErrorMessage" = "The Textual IRC Client has received a DCC request that could not be processed.";
 
 "DefaultDisconnectQuitMessage" = "Textual IRC Client: www.textualapp.com";
@@ -108,9 +96,66 @@
 
 "GlineReason" = "35d Your behavior is not conducive to the desired environment.";
 
+"AutoConnectAfterWakeUpHostNotReachable" = "Delaying auto connect after waking up for %1$@ seconds due to the unavailability of the local network. To force connect at any time, right-click the server and click \002Connect\002.";
+
+"ConnectReconnectCancelledDueToHostNotReachable" = "A reconnect attempt has been cancelled because the local network is currently unavailable. Another attempt will be performed in %@ seconds. To force connect at any time, right-click the server and select \002Connect\002. Alternatively, to cancel these reconnect attempts, right-click the server and select \002Cancel Reconnect\002.";
+
+"ClientAuxiliaryConfigurationCommandInvalidSyntaxError" = "Invalid Syntax. Type \"/defaults help\" for more information.";
+
+"ClientAuxiliaryConfigurationCommandHelpInformation_01" = "The \002defaults\002 command provides the ability to enable or disable certain features of the selected server which are not";
+"ClientAuxiliaryConfigurationCommandHelpInformation_02" = "accessible through the user interface. These features are made available through this command as they are rarely used";
+"ClientAuxiliaryConfigurationCommandHelpInformation_03" = "and would otherwise waste unnecessary space being presented in an actual interactive list.";
+"ClientAuxiliaryConfigurationCommandHelpInformation_04" = " ";
+"ClientAuxiliaryConfigurationCommandHelpInformation_05" = "Usage:";
+"ClientAuxiliaryConfigurationCommandHelpInformation_06" = "\t\"/defaults enable <token>\" — Enables the feature associated with \002<token>\002.";
+"ClientAuxiliaryConfigurationCommandHelpInformation_07" = "\t\"/defaults disable <token>\" — Disables the feature associated with \002<token>\002.";
+"ClientAuxiliaryConfigurationCommandHelpInformation_08" = "\t\"/defaults features\" — Opens Webpage in the default browser which contains list of supported features.";
+"ClientAuxiliaryConfigurationCommandHelpInformation_09" = " ";
+"ClientAuxiliaryConfigurationCommandHelpInformation_10" = "The \002<token>\002 parameter supplied to this command can be encapsulated in double quotes (\") to allow for spaces.";
+
+"ClientAuxiliaryConfigurationCommandFeatureCannotEnable" = "Cannot enable the feature \"%@\" as it is not supported.";
+"ClientAuxiliaryConfigurationCommandFeatureCannotDisable" = "Cannot disable the feature \"%@\" as it is not supported.";
+
+"ClientAuxiliaryConfigurationCommandFeatureEnabled" = "Enabled Feature: %@";
+"ClientAuxiliaryConfigurationCommandFeatureDisabled" = "Disabled Feature: %@";
+
+"DCCFileTransferInitiated" = "Trying file transfer to %1$@, %2$@ (%3$qi bytes)";
+"DCCFileTransferRequestReceived" = "Received file transfer request from %1$@, %2$@ (%3$qi bytes)";
+
 "ExcessFloodIRCDisconnectAlertTitle" = "Excess Flood";
 "ExcessFloodIRCDisconnectAlertMessage" = "A disconnection has occured due to excess flood. Reconnect?";
 "ExcessFloodIRCDisconnectAlertOpenFloodControlButton" = "Configure Flood Control";
+
+"FileTransferDialogTransferToUserStatusWithoutRemainingTime" = "%1$@ of %2$@ (%3$@/s) sent to %4$@";
+"FileTransferDialogTransferToUserStatusWithRemainingTime" = "%1$@ of %2$@ (%3$@/s) sent to %4$@ — %5$@ remaining";
+
+"FileTransferDialogTransferToUserIsAttemptingPortMapping" = "Transfer to %@ is initializing. Attempting to map listening port.";
+"FileTransferDialogTransferToUserIsDeterminingIPAddress" = "Transfer to %@ is initializing. Determining local IP address.";
+"FileTransferDialogTransferToUserIsWaitingForAcceptance" = "Transfer to %@ is ready. Waiting for them to accept.";
+"FileTransferDialogTransferToUserSocketIsListening" = "Transfer to %@ is ready. Waiting for them to accept.";
+"FileTransferDialogTransferToUserIsStopped" = "Transfer to %@ is stopped. Right click to start.";
+"FileTransferDialogTransferToUserIsInitializing" = "Transfer to %@ is initializing.";
+"FileTransferDialogTransferToUserIsComplete" = "Transfer to %@ is complete.";
+
+"FileTransferDialogTransferFromUserStatusWithoutRemainingTime" = "%1$@ of %2$@ (%3$@/s) received from %4$@";
+"FileTransferDialogTransferFromUserStatusWithRemainingTime" = "%1$@ of %2$@ (%3$@/s) received from %4$@ — %5$@ remaining";
+
+"FileTransferDialogTransferFromUserIsAttemptingPortMapping" = "Transfer from %@ is initializing. Attempting to map listening port.";
+"FileTransferDialogTransferFromUserIsDeterminingIPAddress" = "Transfer from %@ is initializing. Determining local IP address.";
+"FileTransferDialogTransferFromUserSocketIsListening" = "Transfer from %@ is ready. Right click to start.";
+"FileTransferDialogTransferFromUserIsStopped" = "Transfer from %@ is stopped. Right click to start.";
+"FileTransferDialogTransferFromUserIsInitializing" = "Transfer from %@ is initializing.";
+"FileTransferDialogTransferFromUserIsComplete" = "Transfer from %@ is complete. Right click to open in Finder.";
+
+"FileTransferDialogTransferSocketIsConnecting" = "Connecting to %@.";
+
+"FileTransferDialogTransferFailedWithUnavailablePort" = "Transfer with %@ failed. There is no open port.";
+"FileTransferDialogTransferFailedWithBadFileHandle" = "Transfer with %@ failed. Could not read source file.";
+"FileTransferDialogTransferFailedWithBadSourceAddress" = "Transfer with %@ failed. Unknown source IP address.";
+"FileTransferDialogTransferFailedWithUnknownDisconnect" = "Transfer with %@ failed. Connection was disconnected.";
+"FileTransferDialogTransferFailedWithBadSenderConnect" = "Transfer with %@ failed. Could not establish connection.";
+
+"FileTransferDialogTransferSavePanelDialogMessage" = "Select the folder in which this file will be saved.";
 
 "HalfopCommandNotSupportedOnServer" = "The half-op (+h) mode is not supported on this server.";
 
@@ -123,7 +168,7 @@
 "IRCCTCPRequestIgnored" = "\002-CTCP-\002 %1$@ from %2$@ was ignored.";
 
 "IRCClientSupportedCapacities" = "away-notify multi-prefix userhost-in-names sasl server-time";
-"IRCCTCPSupportedReplies" = "CLIENTINFO FINGER PING TIME USERINFO VERSION";
+"IRCCTCPSupportedReplies" = "CLIENTINFO DCC FINGER PING TIME USERINFO VERSION";
 "IRCCTCPVersionTitle" = "\002Current Version:\002 %@";
 "IRCCTCPFingerCommandReply" = "Stop fingering me pervert!";
 "IRCCapCurrentlyEnabledNone" = "There are no capabilities in use.";
@@ -135,11 +180,13 @@
 "IRCChannelHasWebsite" = "Website is \002%@\002";
 "IRCChannelPreparingRejoinAttempt" = "Attempting to rejoin channel in three seconds.";
 "IRCChannelTopicChanged" = "\002%1$@\002 changed the topic to \002%2$@\002";
-"IRCConnectedToServer" = "Connection to host completed.";
+"IRCConnectedToServer" = "Connection to host established.";
+"IRCConnectedToServerWithAddress" = "Connection to host at [%@] established.";
 "IRCDisconnectedBySleepMode" = "Disconnect for Sleep Mode";
 "IRCDisconnectedByServerRedirect" = "Disconnected for server redirect.";
 "IRCDisconnectedByBadSSLCertificate" = "Disconnected from server because of an untrusted SSL certificate.";
 "IRCDisconnectedByTrialPeriodTimer" = "Disconnected from server due to trial period limit. Please consider purchasing Textual to continue or simply reconnect.";
+"IRCDisconnectedByReachabilityChange" = "Disconnected from server because the configured IRC server is not reachable.";
 "IRCDisconnectedFromServer" = "Disconnected";
 "IRCDisconnectedByTimeout" = "%ld minutes have elapsed since last response from this connection. Disconnecting due to timeout.";
 "IRCMightDisconnectWithTimeout" = "%ld minutes have elapsed since last response from this connection. It is possible the connection is timing out.";
@@ -148,7 +195,6 @@
 "IRCIsConnectingWithNormalProxy" = "Connecting to [%1$@, port %2$ld] via [%3$@, port %4$ld]";
 "IRCIsConnectingWithSystemProxy" = "Connecting to [%1$@, port %2$ld] via System Socks";
 "IRCIsReconnecting" = "Reconnecting …";
-"IRCIsReconnectingWithAttemptCount" = "Reconnecting (attempt #%@) …";
 "IRCIsRetryingConnection" = "Retrying …";
 "IRCModeSet" = "\002%1$@\002 sets mode \002%2$@\002";
 "IRCRawModeIsDisabled" = "Raw mode has been disabled. Textual will no longer output raw data.";
@@ -165,7 +211,7 @@
 "IRCUserDisconnected" = "\002%1$@\002 (%2$@@%3$@) left IRC.";
 "IRCUserDisconnectedFromPrivateMessage" = "\002%1$@\002 left the query by disconnecting from IRC.";
 "IRCUserReconnectedToPrivateMessage" = "\002%1$@\002 joined the query by connecting to IRC.";
-"IRCUserHasModes" = "Your user mode is %@";
+"IRCUserHasModes" = "%@, your user mode is %@";
 "IRCUserInvitedToJoinChannel" = "Inviting %1$@ to join %2$@";
 "IRCUserInvitedYouToJoinChannel" = "%1$@!%2$@@%3$@ invited you to join %4$@";
 "IRCUserIsAway" = "%1$@ is away (%2$@)";
@@ -179,10 +225,30 @@
 "IRCUserWhoisUptime" = "%1$@ signed on at %2$@ and has been idle for %3$@";
 "IRCUserWhowasConnectedFrom" = "%1$@ was connected to %2$@ on %3$@";
 "IRCUserWhowasHostmask" = "%1$@ had userhost %2$@@%3$@ and real name \"%4$@\"";
+"IRCUserNotifiedOfBlockedMessageForUmodeG" = "%@ is not currently accepting private messages from unrecognized users. They have been notified that you have tried messaging them, but the last message you have sent to them has been lost. Any further messages will also be lost until they add you to their list of recognized users.";
+"IRCUserPrivateMessageBlockedByUmodeG" = "%1$@ (%2$@) has tried to send you a private message, but it was blocked due to \002umode +g\002 being enabled. The message they sent has been lost, but typing the command \"/accept %1$@\" will allow new messages to be received until they or you disconnect from IRC.";
 
 "InputRequiredToContinue" = "Input Required to Continue";
 
 "InputTextFieldPlaceholderValue" = "Send Message …";
+
+"iCloudSyncServicesNotAvailableDialogTitle" = "iCloud is Not Available";
+"iCloudSyncServicesNotAvailableDialogMessage" = "It appears iCloud may not be available right now. Please try again later.";
+
+"iCloudSyncServicesSupportDisabledDialogTitle" = "iCloud Sharing Disabled";
+"iCloudSyncServicesSupportDisabledDialogMessage" = "iCloud sharing has been disabled.\n\nIf sharing is enabled on any other devices, then please take note that it must be disabled on those as well for it to apply to all.\n\nData stored with iCloud can be erased at any time by clicking the \"Manage iCloud\" button.";
+
+"iCloudSyncServicesSupportDisabledForServerDialogTitle" = "iCloud Sharing Disabled";
+"iCloudSyncServicesSupportDisabledForServerDialogMessage" = "iCloud sharing has been disabled for this server.\n\nWould you like to remove it from devices it has been shared with?\n\nThis action can be undone by enabling sharing.";
+
+"iCloudSyncServicesSupportEnabledForServerDialogTitle" = "iCloud Sharing Enabled";
+"iCloudSyncServicesSupportEnabledForServerDialogMessage" = "iCloud sharing has been enabled for this server.\n\nBy saving, Textual will override any copy of this server's configuration already stored on iCloud.";
+
+"iCloudSyncDeleteAllDataDialogTitle" = "Are you sure you wish to continue?";
+"iCloudSyncDeleteAllDataDialogMessage" = "Selecting \"Continue\" will erase all data stored by Textual on iCloud related to shared preferences.\n\nPlease keep in mind that if any other copy of Textual is still configured for sharing, then the data you just erased may be placed back on iCloud by the device running that copy.";
+
+"iCloudSyncDeleteAllFilesDialogTitle" = "Are you sure you wish to continue?";
+"iCloudSyncDeleteAllFilesDialogMessage" = "Selecting \"Continue\" will erase all files stored by Textual on iCloud.\n\nThis erase will leave shared preferences intact. Only custom files such as shared styles will be erased.";
 
 "InviteSheetMultiplePeopleSelected" = "%d users";
 "InviteSheetTargetDescription" = "Invite %@ to:";
@@ -215,13 +281,15 @@
 
 "NoLogLocationDefinedMenuItem" = "No Log Location Selected";
 
+"NoFileTransferDownloadDestinationFolderDefinedMenuItem" = "No Location Selected";
+
 "LogFileBeginOfSessionHeader" = "————————————— Begin Session —————————————";
 "LogFileEndOfSessionHeader" = "————————————— End Session —————————————";
 
 "PreferencesExportSaveLocationDialogMessage" = "Please select the location in which to save the file.\n\nIMPORTANT: The file that will be saved does not contain passwords\nas those are considered sensitive information. It also does not include\nany custom addons such as scripts and styles.";
 
 "PreferencesImportPreflightDialogTitle" = "Import Preferences";
-"PreferencesImportPreflightDialogMessage" = "During import, all connections will be disconnected and the contents of all channels cleared.\n\nPlease take note that the following preferences cannot be imported:\n\n    • Passwords.\n    • Log location.\n    • Any custom addons. Styles or scripts.\n\nAll other preferences will apply immediately.";
+"PreferencesImportPreflightDialogMessage" = "Please take note that the following preferences cannot be imported:\n\n    • Passwords.\n    • Log location.\n    • Any custom addons. Styles or scripts.\n\nAll other preferences will apply immediately.";
 "PreferencesImportPreflightDialogSelectFileButton" = "Select File";
 
 "PreferencesAlertSettingsGrowlIsDestination" = "Growl is running. Notifications will be forwarded to it.";
@@ -236,33 +304,51 @@
 /* If an event is not defined below for spoken events, then the odds are
  good that the text to be spoken is localized somewhere else. For example,
  the address book event type is defined near the end of this file. */
-"NotificationChannelMessageSpokenMessage"		= "Channel Message in %1$@ by %2$@, %3$@";
-"NotificationChannelNoticeSpokenMessage"		= "Channel Notice in %1$@ by %2$@, %3$@";
-"NotificationHighlightSpokenMessage"			= "Highlight in %1$@ by %2$@, %3$@";
-"NotificationInvitedSpokenMessage"				= "Invited to %1$@ by %2$@";
-"NotificationKickedSpokenMessage"				= "Kicked from %1$@ by %2$@";
-"NotificationNewPrivateMessageSpokenMessage"	= "New Private Message from %1$@, %2$@";
-"NotificationPrivateMessageSpokenMessage"		= "Private Message from %1$@, %2$@";
-"NotificationPrivateNoticeSpokenMessage"		= "Private Notice from %1$@, %2$@";
-"NotificationConnectedSpokenMessage"			= "Connected to %@";
-"NotificationDisconnectSpokenMessage"			= "Disconnected from %@";
+"NotificationChannelMessageSpokenMessage"					= "Channel Message in %1$@ by %2$@, %3$@";
+"NotificationChannelNoticeSpokenMessage"					= "Channel Notice in %1$@ by %2$@, %3$@";
+"NotificationHighlightSpokenMessage"						= "Highlight in %1$@ by %2$@, %3$@";
+"NotificationInvitedSpokenMessage"							= "Invited to %1$@ by %2$@";
+"NotificationKickedSpokenMessage"							= "Kicked from %1$@ by %2$@";
+"NotificationNewPrivateMessageSpokenMessage"				= "New Private Message from %1$@, %2$@";
+"NotificationPrivateMessageSpokenMessage"					= "Private Message from %1$@, %2$@";
+"NotificationPrivateNoticeSpokenMessage"					= "Private Notice from %1$@, %2$@";
+"NotificationConnectedSpokenMessage"						= "Connected to %@";
+"NotificationDisconnectSpokenMessage"						= "Disconnected from %@";
 
-"NotificationAddressBookMatchMessageTitle"	= "Address Book Notification";
-"NotificationChannelMessageMessageTitle"	= "Channel Message: %@";
-"NotificationChannelNoticeMessageTitle"		= "Channel Notice: %@";
-"NotificationConnectedMessageTitle"			= "Connected: %@";
-"NotificationDisconnectMessageTitle"		= "Disconnected: %@";
-"NotificationHighlightMessageTitle"			= "Highlight: %@";
-"NotificationInvitedMessageTitle"			= "Invited: %@";
-"NotificationKickedMessageTitle"			= "Kicked: %@";
-"NotificationNewPrivateMessageMessageTitle"	= "New Private Message";
-"NotificationPrivateMessageMessageTitle"	= "Private Message";
-"NotificationPrivateNoticeMessageTitle"		= "Private Notice";
+"NotificationFileTransferSendSuccessfulSpokenMessage"		= "File transfer to %@ has completed.";
+"NotificationFileTransferReceiveSuccessfulSpokenMessage"	= "File transfer from %@ has completed.";
+"NotificationFileTransferSendFailedSpokenMessage"			= "File transfer to %@ has failed.";
+"NotificationFileTransferReceiveFailedSpokenMessage"		= "File transfer from %@ has failed.";
+"NotificationFileTransferReceiveRequestedSpokenMessage"		= "Received file transfer request from %@";
 
-"NotificationConnectedMessageDescription"	= "Connection successful.";
-"NotificationDisconnectMessageDescription"	= "Disconnection successful.";
-"NotificationInvitedMessageDescription"		= "%1$@ has invited you to %2$@";
-"NotificationKickedMessageDescription"		= "%1$@ has kicked you out: %2$@";
+"NotificationAddressBookMatchMessageTitle"					= "Address Book Notification";
+"NotificationChannelMessageMessageTitle"					= "Channel Message: %@";
+"NotificationChannelNoticeMessageTitle"						= "Channel Notice: %@";
+"NotificationConnectedMessageTitle"							= "Connected: %@";
+"NotificationDisconnectMessageTitle"						= "Disconnected: %@";
+"NotificationHighlightMessageTitle"							= "Highlight: %@";
+"NotificationInvitedMessageTitle"							= "Invited: %@";
+"NotificationKickedMessageTitle"							= "Kicked: %@";
+"NotificationNewPrivateMessageMessageTitle"					= "New Private Message";
+"NotificationPrivateMessageMessageTitle"					= "Private Message";
+"NotificationPrivateNoticeMessageTitle"						= "Private Notice";
+
+"NotificationFileTransferSendSuccessfulMessageTitle"		= "Successful File Transfer: %@";
+"NotificationFileTransferReceiveSuccessfulMessageTitle"		= "Successful File Transfer: %@";
+"NotificationFileTransferSendFailedMessageTitle"			= "File Transfer Failed: %@";
+"NotificationFileTransferReceiveFailedMessageTitle"			= "File Transfer Failed: %@";
+"NotificationFileTransferReceiveRequestedMessageTitle"		= "File Transfer Request: %@";
+
+"NotificationConnectedMessageDescription"					= "Connection successful.";
+"NotificationDisconnectMessageDescription"					= "Disconnection successful.";
+"NotificationInvitedMessageDescription"						= "%1$@ has invited you to %2$@";
+"NotificationKickedMessageDescription"						= "%1$@ has kicked you out: %2$@";
+
+"NotificationFileTransferSendSuccessfulDescription"			= "%1$@ (%2$qi bytes)";
+"NotificationFileTransferReceiveSuccessfulDescription"		= "%1$@ (%2$qi bytes)";
+"NotificationFileTransferSendFailedDescription"				= "%1$@";
+"NotificationFileTransferReceiveFailedDescription"			= "%1$@";
+"NotificationFileTransferReceiveRequestedDescription"		= "%1$@ (%2$qi bytes)";
 
 "NotificationDialogPrivateMessageReplyPlaceholder"	= "Enter message to reply to this private message.";
 
@@ -270,8 +356,25 @@
 
 "OkButton" = "OK";
 
-"OpeningLocalStyleResourcesCopyButton" = "Make Local Copy";
-"OpeningLocalStyleResourcesMessage" = "The style being opened is a read-only version bundled with Textual.\n\nWould you like to create a local copy? It will become the selected style and can then be modified.";
+"ResourcesFileImportScriptSaveDialogTitle" = "Install Custom Script";
+"ResourcesFileImportScriptSaveDialogMessage" = "Select the folder named \"%@\" to install this script within.\nIf this folder does not exist, then create it. No other folder name can be used.";
+
+"ResourcesFileImportScriptInstallSuccessDialogTitle" = "New Script Installed";
+"ResourcesFileImportScriptInstallSuccessDialogMessage" = "The script \"%@\" has been successfully installed and is now available for usage.";
+
+"ResourcesFileImportBundleInstallSuccessDialogTitle" = "New Extension Installed";
+"ResourcesFileImportBundleInstallSuccessDialogMessage" = "The extension \"%@\" has been successfully installed. The services defined by this extension will be available the next time Textual launches.";
+
+"ResourcesFileImportSystemVersionErrorDialogTitle" = "Incompatiable System Version";
+"ResourcesFileImportSystemVersionErrorDialogMessage" = "A file that you are trying to install cannot be used on this version of Mac OS X.";
+
+"OpeningLocalStyleResourcesNormalCopyButton" = "Make Local Copy";
+"OpeningLocalStyleResourcesCloudCopyButton" = "Copy to iCloud";
+"OpeningLocalStyleResourcesNormalMessage" = "The style being opened is a read-only version bundled with Textual.\n\nWould you like to create a local copy of it?\n\nIt will become the selected style and can then be modified.";
+"OpeningLocalStyleResourcesCloudMessage" = "The style being opened is a read-only version bundled with Textual.\n\nWould you like to create a copy of it in your iCloud folder?\n\nIt will become the selected style and can then be modified across all shared devices.";
+
+"OpeningLocalCustomStyleResourcesCloudMessage" = "The style being opened is only available on this device.\n\nWould you like to create a copy of it in your iCloud folder?\n\nIt will become the selected style and will then be available across all shared devices.";
+
 "OpeningLocalStyleResourcesTitle" = "Resource Files";
 
 "PluginCommandClashErrorMessage" = "Error: The command %@ is shared by both a script and plugin. Sending to server because of inability to determine priority.";
@@ -285,7 +388,9 @@
 
 "SelfBanDetectedMessage" = "Textual has prevented you from banning yourself on %@.";
 
-"ServerDeletePromptMessage" = "There is no undo and all data related to this server, except for logs, will be erased.";
+"ServerDeletePromptNormalMessage" = "There is no undo and all data related to this server, except for logs, will be erased.";
+"ServerDeletePromptCloudMessage" = "There is no undo and all data related to this server held on this device and shared with iCloud, except for logs, will be erased.\n\nOpen Server Properties and select \"Do not share with other devices using iCloud\" to stop this server from being erased on all shared devices.";
+
 "ServerDeletePromptTitle" = "Do you want to delete the selection?";
 
 "ServerNotConnectedLineSendError" = "Failed to send data to server. Not connected.";
@@ -304,12 +409,17 @@
 "ServerSheetMessageNavigationTreeItem" = "Messages";
 "ServerSheetMiscNavigationTreeItem" = "Miscellaneous";
 "ServerSheetProxyNavigationTreeItem" = "Proxy Server";
+"ServerSheetSSLCertificateNavigationTreeItem" = "SSL Certificate";
 "ServerSheetMentionsNavigationTreeItem" = "Mentions";
 "ServerSheetNetworkNavigationTreeItem" = "Network Socket";
 "ServerSheetZNCBouncerNavigationTreeItem" = "ZNC Bouncer";
 
 "ServerSheetAddressBookAdditionMenuAddIgnore" = "Add User Ignore Entry";
 "ServerSheetAddressBookAdditionMenuAddTracker" = "Add User Tracking Entry";
+
+"ServerSheetSSLCertificateViewNoCertificateSelected" = "No Certificate Selected";
+"ServerSheetSSLCertificateViewSelectIdentityDialogTitle" = "Select Identity";
+"ServerSheetSSLCertificateViewSelectIdentityDialgMessage" = "Below is a list of certificates (also known as \"identities\" or an \"identity\") which Textual has found within the Mac OS keychain. Please select the certificate which you would like sent to the configured IRC server \"%@\" upon connection. ";
 
 "SetAsDefaultIRCClientPromptMessage" = "Textual is not set as the default IRC client for this copy of Mac OS X. Set it?";
 "SetAsDefaultIRCClientPromptTitle" = "Default IRC Client";
@@ -319,7 +429,7 @@
 
 "ShunReason" = "1d Shunned.";
 
-"SocketBadSSLCertificateErrorMessage" = "The server that you are connecting to has a SSL certificate that has either expired or is not trusted. Would you like to connect to the server regardless?";
+"SocketBadSSLCertificateErrorMessage" = "The server that you are connecting to has a SSL certificate that has either expired or is not trusted.\n\nSelect the \"Show Certificate\" button shown below for the option to disable the checking of this particular certificate.";
 "SocketBadSSLCertificateErrorTitle" = "Untrusted Connection";
 
 "SoundIsAlreadyMuted" = "Sound is already muted.";
@@ -329,19 +439,27 @@
 
 "StyleTemplateLoadFailed" = "Template Load Failed: %@";
 
+"SelectButton" = "Select";
+
 "TXEmptySoundAlertLabel" = "None";
 
-"TXNotificationAddressBookMatchType"	= "Address Book Notification";
-"TXNotificationChannelMessageType"		= "Channel Message";
-"TXNotificationChannelNoticeType"		= "Channel Notice";
-"TXNotificationConnectType"				= "Connected";
-"TXNotificationDisconnectType"			= "Disconnected";
-"TXNotificationHighlightType"			= "Highlight";
-"TXNotificationInviteType"				= "Channel Invitation";
-"TXNotificationKickType"				= "Kicked from Channel";
-"TXNotificationNewPrivateMessageType"	= "Private Message (new)";
-"TXNotificationPrivateMessageType"		= "Private Message";
-"TXNotificationPrivateNoticeType"		= "Private Notice";
+"TXNotificationAddressBookMatchType"				= "Address Book Notification";
+"TXNotificationChannelMessageType"					= "Channel Message";
+"TXNotificationChannelNoticeType"					= "Channel Notice";
+"TXNotificationConnectType"							= "Connected";
+"TXNotificationDisconnectType"						= "Disconnected";
+"TXNotificationHighlightType"						= "Highlight (Mention)";
+"TXNotificationInviteType"							= "Channel Invitation";
+"TXNotificationKickType"							= "Kicked from Channel";
+"TXNotificationNewPrivateMessageType"				= "Private Message (new)";
+"TXNotificationPrivateMessageType"					= "Private Message";
+"TXNotificationPrivateNoticeType"					= "Private Notice";
+
+"TXNotificationFileTransferSendSuccessfulType"		= "Successful File Transfer (Sending)";
+"TXNotificationFileTransferReceiveSuccessfulType"	= "Successful File Transfer (Receiving)";
+"TXNotificationFileTransferSendFailedType"			= "Failed File Transfer (Sending)";
+"TXNotificationFileTransferReceiveFailedType"		= "Failed File Transfer (Receiving)";
+"TXNotificationFileTransferReceiveRequestedType"	= "File Transfer Request";
 
 "ThemeChangeOverridePromptChannelFont" = "• Channel View Font";
 "ThemeChangeOverridePromptMessage" = "The newly selected style \"%1$@\" has chosen to override the following preferences with ones that it prefers for the best viewing experience:\n\n%2$@";

@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -64,9 +64,29 @@
 	return self;
 }
 
-- (void)terminate
+- (void)setupOtherServices
+{
+	if ([TPCPreferences featureAvailableToOSXMountainLion]) {
+		 self.fileTransferController = [TDCFileTransferDialog new];
+
+		[self.fileTransferController startUsingDownloadDestinationFolderSecurityScopedBookmark];
+	}
+}
+
+- (void)prepareForApplicationTermination
 {
 	[self popWindowSheetIfExists];
+	
+	if ([TPCPreferences featureAvailableToOSXMountainLion]) {
+		[self.fileTransferController prepareForApplicationTermination];
+	}
+}
+
+- (void)preferencesChanged
+{
+	if ([TPCPreferences featureAvailableToOSXMountainLion]) {
+		[self.fileTransferController clearCachedIPAddress];
+	}
 }
 
 - (void)validateChannelMenuSubmenus:(NSMenuItem *)item
@@ -156,6 +176,13 @@
 		{
 			return _disableInSheet(YES);
 
+			break;
+		}
+		case 594: // "File Transfers"
+		case 52694: // "Send file…"
+		{
+			return _disableInSheet([TPCPreferences featureAvailableToOSXMountainLion]);
+			
 			break;
 		}
 		case 51066: // "Toggle Visbility of Member List"
@@ -521,7 +548,7 @@
 
 	for (IRCClient *u in self.worldController.clients) {
 		/* Create a menu item for the client title. */
-		TXSpecialNSMenuItemHelper *newItem = [TXSpecialNSMenuItemHelper menuItemWithTitle:TXTFLS(@"NavigationChannelListClientEntryTitle", u.name) target:nil action:nil];
+		NSMenuExtendedHelperItem *newItem = [NSMenuExtendedHelperItem menuItemWithTitle:TXTFLS(@"NavigationChannelListClientEntryTitle", u.name) target:nil action:nil];
 
 		[self.navigationChannelList addItem:newItem];
 
@@ -529,7 +556,7 @@
 		for (IRCChannel *c in u.channels) {
 			/* Create the menu item. Only first ten items get a key combo. */
 			if (channelCount >= 10) {
-				newItem = [TXSpecialNSMenuItemHelper menuItemWithTitle:TXTFLS(@"NavigationChannelListChannelEntryTitle", c.name)
+				newItem = [NSMenuExtendedHelperItem menuItemWithTitle:TXTFLS(@"NavigationChannelListChannelEntryTitle", c.name)
 																target:self
 																action:@selector(navigateToSpecificChannelInNavigationList:)];
 			} else {
@@ -539,7 +566,7 @@
 					keyboardIndex = 0; // Have 0 as the last item.
 				}
 				
-				newItem = [TXSpecialNSMenuItemHelper menuItemWithTitle:TXTFLS(@"NavigationChannelListChannelEntryTitle", c.name)
+				newItem = [NSMenuExtendedHelperItem menuItemWithTitle:TXTFLS(@"NavigationChannelListChannelEntryTitle", c.name)
 																target:self
 																action:@selector(navigateToSpecificChannelInNavigationList:)
 														 keyEquivalent:[NSString stringWithUniChar:('0' + keyboardIndex)]
@@ -559,7 +586,7 @@
 	}
 }
 
-- (void)navigateToSpecificChannelInNavigationList:(TXSpecialNSMenuItemHelper *)sender
+- (void)navigateToSpecificChannelInNavigationList:(NSMenuExtendedHelperItem *)sender
 {
 	[self.worldController select:[self.worldController findItemFromInfo:sender.userInfo]];
 }
@@ -599,7 +626,7 @@
 			}
 		} else {
 			if (pontrEmpty == NO) {
-				IRCUser *m = [c findMember:self.pointedNickname];
+				IRCUser *m = [c memberWithNickname:self.pointedNickname];
 				
 				if (m) {
 					[ary safeAddObject:m];
@@ -814,6 +841,14 @@
 }
 
 #pragma mark -
+#pragma mark File Transfers Dialog
+
+- (void)showFileTransfersDialog:(id)sender
+{
+	[self.fileTransferController show:YES restorePosition:YES];
+}
+
+#pragma mark -
 #pragma mark Preferences Dialog
 
 - (void)showPreferencesDialog:(id)sender
@@ -883,12 +918,9 @@
 
 - (void)showAcknowledgments:(id)sender
 {
-	[RZWorkspace() openFile:[[TPCPreferences applicationResourcesFolderPath] stringByAppendingPathComponent:@"Documentation/Acknowledgments.rtfd"]];
-}
-
-- (void)showContributors:(id)sender
-{
-	[RZWorkspace() openFile:[[TPCPreferences applicationResourcesFolderPath] stringByAppendingPathComponent:@"Documentation/Contributors.rtfd"]];
+	NSString *acknowledgmentsPath = [RZMainBundle() pathForResource:@"Acknowledgments" ofType:@"pdf" inDirectory:@"Documentation"];
+	
+	[RZWorkspace() openFile:acknowledgmentsPath];
 }
 
 - (void)showScriptingDocumentation:(id)sender
@@ -1090,7 +1122,12 @@
 	IRCClientConfig *config = u.storedConfig.mutableCopy;
 
 	config.itemUUID = [NSString stringWithUUID];
+	
 	config.clientName = [config.clientName stringByAppendingString:@"_"];
+	
+	config.serverPassword = NSStringEmptyPlaceholder;
+	config.nicknamePassword = NSStringEmptyPlaceholder;
+	config.proxyPassword = NSStringEmptyPlaceholder;
 	
 	IRCClient *n = [self.worldController createClient:config reload:YES];
 	
@@ -1109,11 +1146,21 @@
 		return;
 	}
 	
-	BOOL result = [TLOPopupPrompts dialogWindowWithQuestion:TXTLS(@"ServerDeletePromptMessage")
+	NSString *warningToken = @"ServerDeletePromptNormalMessage";
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if ([TPCPreferences syncPreferencesToTheCloud]) {
+		if (u.config.excludedFromCloudSyncing == NO) {
+			warningToken = @"ServerDeletePromptCloudMessage";
+		}
+	}
+#endif
+	
+	BOOL result = [TLOPopupPrompts dialogWindowWithQuestion:TXTLS(warningToken)
 													  title:TXTLS(@"ServerDeletePromptTitle")
 											  defaultButton:TXTLS(@"OkButton") 
 											alternateButton:TXTLS(@"CancelButton")
-											 suppressionKey:@"delete_server"
+											 suppressionKey:nil
 											suppressionText:nil];
 	
 	if (result == NO) {
@@ -1158,6 +1205,8 @@
 {
 	if (NSObjectIsEmpty(sender.clientID)) {
 		[self.worldController createClient:sender.config reload:YES];
+		
+		[sender.config writeKeychainItemsToDisk];
 	} else {
 		IRCClient *u = [self.worldController findClientById:sender.clientID];
 		
@@ -1166,18 +1215,23 @@
 		}
 
 		BOOL samencoding = (sender.config.primaryEncoding == u.config.primaryEncoding);
-		
+
 		[u updateConfig:sender.config];
 
 		if (samencoding == NO) {
 			[self.worldController reloadTheme];
 		}
-
-		[u populateISONTrackedUsersList:sender.config.ignoreList];
 	}
 	
 	[self.worldController save];
 }
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+- (void)serverSheetRequestedCloudExclusionByDeletion:(TDCServerSheet *)sender
+{
+	[self.worldController addClientToListOfDeletedClients:sender.config.itemUUID];
+}
+#endif
 
 - (void)serverSheetWillClose:(TDCServerSheet *)sender
 {
@@ -1429,6 +1483,8 @@
 		
 		[self.worldController createChannel:sender.config client:u reload:YES adjust:YES];
 		[self.worldController expandClient:u];
+		
+		[sender.config writeKeychainItemsToDisk];
 	} else {
 		IRCChannel *c = [self.worldController findChannelByClientId:sender.clientID channelId:sender.channelID];
 		
@@ -1436,20 +1492,23 @@
 			return;
 		}
 
-		BOOL oldKeyEmpty = NSObjectIsEmpty(c.config.encryptionKey);
-		BOOL newKeyEmpty = NSObjectIsEmpty(sender.config.encryptionKey);
+		NSString *oldKey = [c.config encryptionKey];
+		NSString *newKey = [c.config temporaryEncryptionKey];
 		
+		BOOL oldKeyEmpty = NSObjectIsEmpty(oldKey);
+		BOOL newKeyEmpty = NSObjectIsEmpty(newKey);
+
+		[c updateConfig:sender.config];
+
 		if (oldKeyEmpty && newKeyEmpty == NO) {
 			[c.client printDebugInformation:TXTLS(@"BlowfishEncryptionStarted") channel:c];
 		} else if (oldKeyEmpty == NO && newKeyEmpty) {
 			[c.client printDebugInformation:TXTLS(@"BlowfishEncryptionStopped") channel:c];
 		} else if (oldKeyEmpty == NO && newKeyEmpty == NO) {
-			if ([c.config.encryptionKey isEqualToString:sender.config.encryptionKey] == NO) {
+			if (NSObjectsAreEqual(oldKey, newKey) == NO) {
 				[c.client printDebugInformation:TXTLS(@"BlowfishEncryptionKeyChanged") channel:c];
 			}
 		}
-		
-		[c updateConfig:sender.config];
 	}
 	
 	[self.worldController save];
@@ -1521,7 +1580,7 @@
 	}
     
 	/* The text field. */
-	TVCInputTextField *textField = self.masterController.inputTextField;
+	TVCMainWindowTextView *textField = self.masterController.inputTextField;
     
 	NSRange selectedRange = textField.selectedRange;
     
@@ -1818,8 +1877,8 @@
 		opString = [opString stringByAppendingFormat:@"%@ ", m.nickname];
 		
 		currentIndex += 1;
-		
-		if (currentIndex == TXMaximumNodesPerModeCommand) {
+
+		if (currentIndex == [u.isupport modesCount]) {
 			[u sendCommand:[NSString stringWithFormat:@"%@ %@", tmode, opString] completeTarget:YES target:c.name];
 			
 			opString = NSStringEmptyPlaceholder;
@@ -1963,6 +2022,66 @@
 	}
 	
 	[self deselectMembers:sender];
+}
+
+- (void)memberSendFileRequest:(id)sender
+{
+	IRCClient *u = [self.worldController selectedClient];
+	IRCChannel *c = [self.worldController selectedChannel];
+	
+	if (_noClientOrChannel || _isClient || _notConnected) {
+		return;
+	}
+	
+	NSOpenPanel *d = [NSOpenPanel openPanel];
+	
+	[d setCanChooseFiles:YES];
+	[d setCanChooseDirectories:NO];
+	[d setResolvesAliases:YES];
+	[d setAllowsMultipleSelection:YES];
+	[d setCanCreateDirectories:NO];
+	
+	id modalWindow = self.masterController.mainWindow;
+	
+	[d beginSheetModalForWindow:modalWindow completionHandler:^(NSInteger returnCode) {
+		if (returnCode == NSOKButton) {
+			[self.fileTransferController.fileTransferTable beginUpdates];
+			
+			for (IRCUser *m in [self selectedMembers:sender]) {
+				for (NSURL *pathURL in [d URLs]) {
+					[self.fileTransferController addSenderForClient:u nickname:m.nickname path:[pathURL path] autoOpen:YES];
+				}
+			}
+			
+			[self.fileTransferController.fileTransferTable endUpdates];
+		}
+		
+		[self deselectMembers:sender];
+	}];
+}
+
+- (void)memberSendDroppedFiles:(NSArray *)files row:(NSNumber *)row
+{
+	IRCClient *u = [self.worldController selectedClient];
+	IRCChannel *c = [self.worldController selectedChannel];
+	
+	if (_noClientOrChannel || _isClient || _notConnected) {
+		return;
+	}
+	
+	IRCUser *member = [c memberAtIndex:[row integerValue]];
+	
+	for (NSString *pathURL in files) {
+		BOOL isDirectory = NO;
+		
+		if ([RZFileManager() fileExistsAtPath:pathURL isDirectory:&isDirectory]) {
+			if (isDirectory) {
+				continue;
+			}
+		}
+		
+		[self.fileTransferController addSenderForClient:u nickname:[member nickname] path:pathURL autoOpen:YES];
+	}
 }
 
 - (void)openLogLocation:(id)sender
@@ -2141,35 +2260,27 @@
 	[self.masterController.mainWindow makeKeyAndOrderFront:nil];
 }
 
-- (void)toggleFullscreenMode:(id)sender
-{
-	if (self.masterController.isInFullScreenMode) {
-		[self.masterController.mainWindow toggleFullScreen:sender];
-
-		[self.masterController loadWindowState:NO];
-	} else {
-		[self.masterController saveWindowState];
-		
-		[self.masterController.mainWindow toggleFullScreen:sender];
-	}
-
-	self.masterController.isInFullScreenMode = BOOLReverseValue(self.masterController.isInFullScreenMode);
-}
-
 - (void)sortChannelListNames:(id)sender
 {
-	TVCServerList *serverList = self.masterController.serverList;
+	TVCServerList *serverList = [self.masterController serverList];
 
-	id oldSelection = self.worldController.selectedItem;
+	id oldSelection = [self.worldController selectedItem];
+	
+	[self.worldController setTemporarilyDisablePreviousSelectionUpdates:YES];
 
-	for (IRCClient *u in self.worldController.clients) {
-		BOOL isExpanded = u.config.sidebarItemExpanded;
-		
-		if (isExpanded) {
-			[serverList.animator collapseItem:u];
-		}
-
-		NSArray *clientChannels = [u.channels sortedArrayUsingFunction:IRCChannelDataSort context:nil];
+	for (IRCClient *u in [self.worldController clients]) {
+		NSArray *clientChannels = [u.channels sortedArrayUsingComparator:^NSComparisonResult(IRCChannel *obj1, IRCChannel *obj2)
+		{
+			NSString *name1 = [obj1.name lowercaseString];
+			NSString *name2 = [obj2.name lowercaseString];
+			
+			// if {
+			// name1 = [name1 channelNameTokenByTrimmingAllPrefixes:u];
+			// name2 = [name2 channelNameTokenByTrimmingAllPrefixes:u];
+			// }
+			
+			return [name1 compare:name2];
+		}];
 		
 		[u.channels removeAllObjects];
 		
@@ -2177,28 +2288,29 @@
 			[u.channels safeAddObject:c];
 		}
 		
-		[u updateConfig:u.storedConfig];
-
-		if (isExpanded) {
-			[serverList.animator expandItem:u];
-		}
+		[u updateConfig:u.storedConfig fromTheCloud:NO withSelectionUpdate:NO];
+		
+		// Reload actual views.
+		[serverList reloadItem:u reloadChildren:YES];
 	}
 
 	[self.worldController select:oldSelection];
 	[self.worldController save];
+	
+	[self.worldController setTemporarilyDisablePreviousSelectionUpdates:NO];
+	
+	[self populateNavgiationChannelList];
 }
 
 - (void)resetWindowSize:(id)sender
 {
-	if (self.masterController.mainWindow.isInFullscreenMode) {
-		[self toggleFullscreenMode:sender];
+	if ([self.masterController.mainWindow isInFullscreenMode]) {
+		[self.masterController.mainWindow toggleFullScreen:sender];
 	}
 
-	[self.masterController.mainWindow setFrame:TPCPreferences.defaultWindowFrame
+	[self.masterController.mainWindow setFrame:[TPCPreferences defaultWindowFrame]
 									   display:YES
 									   animate:YES];
-
-	[self.masterController saveWindowState];
 }
 
 - (void)forceReloadTheme:(id)sender
@@ -2239,16 +2351,6 @@
         
         [sender setState:NSOnState];
     }
-}
-
-- (void)loadExtensionsIntoMemory:(id)sender
-{
-	[RZPluginManager() loadPlugins];
-}
-
-- (void)unloadExtensionsFromMemory:(id)sender
-{
-	[RZPluginManager() unloadPlugins];
 }
 
 - (void)resetDoNotAskMePopupWarnings:(id)sender
@@ -2293,40 +2395,51 @@
 #pragma mark -
 #pragma mark Toggle Mute
 
-- (void)toggleMuteOnNotificationSounds:(id)sender
+- (void)toggleMuteOnAllNotifcationsShortcut:(NSInteger)state
 {
+	if (state == NSOnState) {
+		self.worldController.areNotificationsDisabled = YES;
+	} else {
+		self.worldController.areNotificationsDisabled = NO;
+	}
+
 	NSMenu *fileMenu = [[[NSApp mainMenu] itemWithTag:2] submenu];
 	NSMenu *dockMenu =  [[NSApp delegate] applicationDockMenu:NSApp];
 
-    if ([self.worldController isSoundMuted]) {
-        self.worldController.isSoundMuted = NO;
-		
-		[[fileMenu itemWithTag:6666] setState:NSOffState];
-		[[dockMenu itemWithTag:6666] setState:NSOffState];
-    } else {
-		self.worldController.isSoundMuted = YES;
+	[[fileMenu itemWithTag:6667] setState:state];
+	[[dockMenu itemWithTag:6667] setState:state];
+}
 
-		[[fileMenu itemWithTag:6666] setState:NSOnState];
-		[[dockMenu itemWithTag:6666] setState:NSOnState];
+- (void)toggleMuteOnNotificationSoundsShortcut:(NSInteger)state
+{
+	if (state == NSOnState) {
+		self.worldController.isSoundMuted = YES;
+	} else {
+		self.worldController.isSoundMuted = NO;
+	}
+
+	NSMenu *fileMenu = [[[NSApp mainMenu] itemWithTag:2] submenu];
+	NSMenu *dockMenu =  [[NSApp delegate] applicationDockMenu:NSApp];
+
+	[[fileMenu itemWithTag:6666] setState:state];
+	[[dockMenu itemWithTag:6666] setState:state];
+}
+
+- (void)toggleMuteOnNotificationSounds:(id)sender
+{
+    if ([self.worldController isSoundMuted]) {
+		[self toggleMuteOnNotificationSoundsShortcut:NSOffState];
+    } else {
+		[self toggleMuteOnNotificationSoundsShortcut:NSOnState];
     }
 }
 
 - (void)toggleMuteOnAllNotifcations:(id)sender
 {
-	/* Dig for the menu. */
-	NSMenu *fileMenu = [[[NSApp mainMenu] itemWithTag:2] submenu];
-	NSMenu *dockMenu =  [[NSApp delegate] applicationDockMenu:NSApp];
-
 	if ([self.worldController areNotificationsDisabled]) {
-		self.worldController.areNotificationsDisabled = NO;
-
-		[[fileMenu itemWithTag:6667] setState:NSOffState];
-		[[dockMenu itemWithTag:6667] setState:NSOffState];
+		[self toggleMuteOnAllNotifcationsShortcut:NSOffState];
 	} else {
-		self.worldController.areNotificationsDisabled = YES;
-
-		[[fileMenu itemWithTag:6667] setState:NSOnState];
-		[[dockMenu itemWithTag:6667] setState:NSOnState];
+		[self toggleMuteOnAllNotifcationsShortcut:NSOnState];
 	}
 }
 

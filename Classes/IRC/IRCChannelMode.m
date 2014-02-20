@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -80,7 +80,7 @@
 	NSArray *modes;
 
 	modes = @[@"b", @"e", @"I"];
-	modes = [modes arrayByAddingObjectsFromArray:self.isupport.userModePrefixes.allKeys];
+	modes = [modes arrayByAddingObjectsFromArray:[self.isupport.userModePrefixes allKeys]];
 
 	return modes;
 }
@@ -106,7 +106,7 @@
 	NSMutableString *trail = [NSMutableString string];
 	NSMutableString *track = [NSMutableString string];
 
-	NSArray *modes = mode.modeInformation.sortedDictionaryKeys;
+	NSArray *modes = [mode.modeInformation sortedDictionaryKeys];
 
 	/* Build the removals first. */
 	for (NSString *mkey in modes) {
@@ -164,10 +164,12 @@
 
 - (IRCModeInfo *)modeInfoFor:(NSString *)mode
 {
+	NSObjectIsEmptyAssertReturn(mode, nil);
+	
 	if ([self modeIsDefined:mode] == NO) {
 		IRCModeInfo *m = [self.isupport createMode:mode];
 
-		[self.allModes safeSetObject:m forKey:mode];
+		[self.allModes setObject:m forKey:mode];
 	}
 
 	return [self.allModes objectForKey:mode];
@@ -180,7 +182,7 @@
 
 	[frstr appendString:@"+"];
 
-	NSArray *modes = self.allModes.sortedDictionaryKeys;
+	NSArray *modes = [self.allModes sortedDictionaryKeys];
 
 	for (NSString *mkey in modes) {
 		IRCModeInfo *h = [self.allModes objectForKey:mkey];

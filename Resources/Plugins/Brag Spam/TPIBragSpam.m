@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -83,7 +83,7 @@
 
 				channelCount += 1;
 				
-				IRCUser *myself = [ch findMember:c.localNickname];
+				IRCUser *myself = [ch memberWithNickname:c.localNickname];
 				
 				if (myself.q || myself.a || myself.o) {
 					chanOpCount++;
@@ -93,7 +93,7 @@
 					chanVopCount++;
 				}
 				
-				for (IRCUser *m in ch.memberList) {
+				for (IRCUser *m in [ch unsortedMemberList]) {
 					if ([m isEqual:myself]) {
 						continue;
 					}

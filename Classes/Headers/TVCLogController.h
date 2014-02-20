@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -45,8 +45,8 @@
 @property (nonatomic, strong) TVCLogPolicy *policy;
 @property (nonatomic, strong) TVCLogScriptEventSink *sink;
 @property (nonatomic, strong) TVCWebViewAutoScroll *autoScroller;
-@property (nonatomic, strong) TVCLogControllerHistoricLogFile *historicLogFile;
 @property (nonatomic, assign) BOOL isLoaded;
+@property (nonatomic, assign) BOOL isTerminating;
 @property (nonatomic, assign) BOOL needsLimitNumberOfLines;
 @property (nonatomic, assign) NSInteger activeLineCount;
 @property (nonatomic, assign) NSInteger maximumLineCount;
@@ -55,13 +55,15 @@
 
 @property (assign) BOOL reloadingBacklog;
 @property (assign) BOOL reloadingHistory;
-@property (strong) NSMutableArray *pendingPrintOperations; // Plugins… do not try and modify this array. EVER!
 
 - (void)setUp;
 - (void)notifyDidBecomeVisible;
 
+- (void)channelLevelEncryptionChanged;
 - (void)preferencesChanged;
-- (void)terminate;
+
+- (void)prepareForApplicationTermination;
+- (void)prepareForPermanentDestruction;
 
 - (void)nextHighlight;
 - (void)previousHighlight;
@@ -90,10 +92,6 @@
 
 - (void)print:(TVCLogLine *)logLine;
 - (void)print:(TVCLogLine *)logLine completionBlock:(void(^)(BOOL highlighted))completionBlock;
-
-- (NSString *)renderedBodyForTranscriptLog:(TVCLogLine *)line;
-
-- (void)logViewOnDoubleClick:(NSString *)e;
 
 - (void)executeScriptCommand:(NSString *)command withArguments:(NSArray *)args; // Defaults to onQueue YES
 - (void)executeScriptCommand:(NSString *)command withArguments:(NSArray *)args onQueue:(BOOL)onQueue;

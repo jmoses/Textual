@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -49,42 +49,115 @@
 	return self;
 }
 
-- (void)validateFilePathExistanceAndReload
+- (NSString *)path
 {
-	NSString *filekind = [TPCThemeController extractThemeSource:[TPCPreferences themeName]];
-	NSString *filename = [TPCThemeController extractThemeName:[TPCPreferences themeName]];
+	return [self.baseURL path];
+}
 
-	NSObjectIsEmptyAssert(filekind);
-	NSObjectIsEmptyAssert(filename);
+- (NSString *)actualPath
+{
+	return [TPCThemeController pathOfThemeWithName:self.associatedThemeName skipCloudCache:YES];
+}
 
-	NSString *path = nil;
+- (NSString *)name
+{
+	return [TPCThemeController extractThemeName:self.associatedThemeName];
+}
 
-	/* Determine the path. */
-	if ([filekind isEqualToString:TPCThemeControllerBundledStyleNameBasicPrefix]) {
-		path = [[TPCPreferences bundledThemeFolderPath] stringByAppendingPathComponent:filename];
-	} else {
-		path = [[TPCPreferences customThemeFolderPath] stringByAppendingPathComponent:filename];
+- (BOOL)actualPathForCurrentThemeIsEqualToCachedPath
+{
+	NSString *updatedPath = [TPCThemeController pathOfThemeWithName:self.associatedThemeName];
+	
+	if (NSObjectIsEmpty(updatedPath) && NSObjectIsNotEmpty(self.path)) {
+		return NO;
 	}
+	
+	return ([updatedPath isEqualToString:self.path]);
+}
 
-	/* Does the path exist? */
-	if ([RZFileManager() fileExistsAtPath:path] == NO) {
-		/* Path does not exist. If the path is to a custom theme, then check whether a
-		 bundled theme with the same name exists. If it does not, throw exception. */
-		
-		if ([filekind isEqualToString:TPCThemeControllerBundledStyleNameBasicPrefix] == NO) {
-			path = [[TPCPreferences bundledThemeFolderPath] stringByAppendingPathComponent:filename];
++ (BOOL)themeExists:(NSString *)themeName
+{
+	TPCThemeControllerStorageLocation location = [TPCThemeController storageLocationOfThemeWithName:themeName];
+	
+	return NSDissimilarObjects(location, TPCThemeControllerStorageUnknownLocation);
+}
 
-			if ([RZFileManager() fileExistsAtPath:path] == NO) {
-				NSAssert(NO, @"No path to local resources.");
-			}
++ (NSString *)pathOfThemeWithName:(NSString *)themeName
+{
+	return [self pathOfThemeWithName:themeName skipCloudCache:NO];
+}
+
++ (NSString *)pathOfThemeWithName:(NSString *)themeName skipCloudCache:(BOOL)ignoreCloudCache
+{
+	NSString *filekind = [TPCThemeController extractThemeSource:themeName];
+	NSString *filename = [TPCThemeController extractThemeName:themeName];
+	
+	NSObjectIsEmptyAssertReturn(filekind, nil);
+	NSObjectIsEmptyAssertReturn(filename, nil);
+	
+	NSString *path = nil;
+	
+	if ([filekind isEqualToString:TPCThemeControllerCustomStyleNameBasicPrefix]) {
+		/* Does the theme exist in the cloud? */
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+		if (ignoreCloudCache) {
+			path = [[TPCPreferences cloudCustomThemeFolderPath] stringByAppendingPathComponent:filename];
 		} else {
-			/* Path that was checked is not a custom theme. Throw exception. */
+			path = [[TPCPreferences cloudCustomThemeCachedFolderPath] stringByAppendingPathComponent:filename];
+		}
+		
+		if ([RZFileManager() fileExistsAtPath:path]) {
+			NSString *cssFile = [path stringByAppendingPathComponent:@"design.css"];
 			
-			NSAssert(NO, @"No path to local resources.");
+			if ([RZFileManager() fileExistsAtPath:cssFile]) {
+				return path;
+			}
+		}
+#endif
+		
+		/* Does it exist locally? */
+		path = [[TPCPreferences customThemeFolderPath] stringByAppendingPathComponent:filename];
+		
+		if ([RZFileManager() fileExistsAtPath:path]) {
+			NSString *cssFile = [path stringByAppendingPathComponent:@"design.css"];
+			
+			if ([RZFileManager() fileExistsAtPath:cssFile]) {
+				return path;
+			}
+		}
+	} else {
+		/* Does the theme exist in app? */
+		path = [[TPCPreferences bundledThemeFolderPath] stringByAppendingPathComponent:filename];
+		
+		if ([RZFileManager() fileExistsAtPath:path]) {
+			NSString *cssFile = [path stringByAppendingPathComponent:@"design.css"];
+			
+			if ([RZFileManager() fileExistsAtPath:cssFile]) {
+				return path;
+			}
 		}
 	}
+	
+	return nil;
+}
 
+- (void)validateFilePathExistanceAndReload
+{
+	/* Try to find a theme by the stored name. */
+	self.associatedThemeName = [TPCPreferences themeName];
+	
+	NSString *path = [TPCThemeController pathOfThemeWithName:self.associatedThemeName];
+	
+	if (NSObjectIsEmpty(path)) {
+		NSAssert(NO, @"Missing style resource files.");
+	}
+
+	/* We have a path. */
 	self.baseURL = [NSURL fileURLWithPath:path];
+
+	/* Define a shared cache ID for files. */
+	self.sharedCacheID = [NSString stringWithInteger:TXRandomNumber(5000)];
 
 	/* Reload theme settings. */
 	[self.customSettings reloadWithPath:path];
@@ -95,6 +168,16 @@
 	[self validateFilePathExistanceAndReload];
 }
 
+- (BOOL)isBundledTheme
+{
+	return ([self storageLocation] == TPCThemeControllerStorageBundleLocation);
+}
+
+- (TPCThemeControllerStorageLocation)storageLocation
+{
+	return [TPCThemeController storageLocationOfThemeAtPath:[self path]];
+}
+
 + (NSString *)buildResourceFilename:(NSString *)name
 {
 	return [TPCThemeControllerBundledStyleNameCompletePrefix stringByAppendingString:name];
@@ -103,6 +186,34 @@
 + (NSString *)buildUserFilename:(NSString *)name
 {
 	return [TPCThemeControllerCustomStyleNameCompletePrefix stringByAppendingString:name];
+}
+
++ (TPCThemeControllerStorageLocation)storageLocationOfThemeWithName:(NSString *)themeName
+{
+	NSString *path = [TPCThemeController pathOfThemeWithName:themeName];
+	
+	return [TPCThemeController storageLocationOfThemeAtPath:path];
+}
+
++ (TPCThemeControllerStorageLocation)storageLocationOfThemeAtPath:(NSString *)path
+{
+	NSObjectIsEmptyAssertReturn(path, TPCThemeControllerStorageUnknownLocation);
+	
+	if ([path hasPrefix:[TPCPreferences bundledThemeFolderPath]]) {
+		return TPCThemeControllerStorageBundleLocation;
+	}
+	
+	if ([path hasPrefix:[TPCPreferences customThemeFolderPath]]) {
+		return TPCThemeControllerStorageCustomLocation;
+	}
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if ([path hasPrefix:[TPCPreferences cloudCustomThemeCachedFolderPath]]) {
+		return TPCThemeControllerStorageCloudLocation;
+	}
+#endif
+	
+	return TPCThemeControllerStorageUnknownLocation;
 }
 
 + (NSString *)extractThemeSource:(NSString *)source
@@ -124,7 +235,7 @@
 		return nil;
     }
 	
-	return [source safeSubstringAfterIndex:[source stringPosition:@":"]];	
+	return [source substringAfterIndex:[source stringPosition:@":"]];	
 }
 
 @end

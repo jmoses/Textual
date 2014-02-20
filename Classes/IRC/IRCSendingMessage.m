@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@
 	NSArray *searchPath = [TPCPreferences IRCCommandIndex:NO];
 
 	for (NSArray *indexInfo in searchPath) {
-		if (indexInfo.count == 5) {
+		if ([indexInfo count] == 5) {
 			NSString *matValue = indexInfo[1];
 
 			if ([matValue isEqualIgnoringCase:command] && [indexInfo boolAtIndex:3] == YES) {
@@ -68,7 +68,7 @@
 {
 	NSMutableString *builtString = [NSMutableString string];
 
-	[builtString appendString:command.uppercaseString];
+	[builtString appendString:[command uppercaseString]];
 
 	NSObjectIsEmptyAssertReturn(argList, builtString);
 

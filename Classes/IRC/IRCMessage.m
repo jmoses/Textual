@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[self parseLine:NSStringEmptyPlaceholder];
+		//[self parseLine:NSStringEmptyPlaceholder];
 	}
 	
 	return self;
@@ -84,7 +84,7 @@
 
 	if (client && client.CAPServerTime) {
 		if ([s hasPrefix:@"@"]) {
-			NSString *t = [s.getToken substringFromIndex:1]; //Get token and remove @.
+			NSString *t = [[s getToken] substringFromIndex:1]; //Get token and remove @.
 			
 			NSArray *values = [t componentsSeparatedByString:@","];
 
@@ -102,7 +102,7 @@
 
 				NSAssertReturnLoopBreak(hasTimeExt);
 
-				NSDate *date = [self.worldController.isoStandardDateFormatter dateFromString:extVal];
+				NSDate *date = [[self.worldController isoStandardDateFormatter] dateFromString:extVal];
 				
 				if (PointerIsEmpty(date)) {
 					date = [NSDate dateWithTimeIntervalSince1970:[extVal doubleValue]];
@@ -130,15 +130,20 @@
      front of the message. */
 
 	if ([s hasPrefix:@":"]) {
-		NSString *t = [s.getToken safeSubstringFromIndex:1];
-		
-		self.sender.hostmask = t;
-        self.sender.nickname = [t nicknameFromHostmask];
+		NSString *t = [[s getToken] substringFromIndex:1];
 
-        if ([t isHostmask]) {
-            self.sender.username = [t usernameFromHostmask];
-            self.sender.address = [t addressFromHostmask];
+		NSString *nicknameInt = nil;
+		NSString *usernameInt = nil;
+		NSString *addressInt = nil;
+
+		self.sender.hostmask = t;
+		
+		if ([t hostmaskComponents:&nicknameInt username:&usernameInt address:&addressInt client:client]) {
+			self.sender.nickname = nicknameInt;
+            self.sender.username = usernameInt;
+            self.sender.address = addressInt;
         } else {
+			self.sender.nickname = t;
 			self.sender.isServer = YES;
 		}
 	}
@@ -146,7 +151,7 @@
     /* Now that we have the sender information… continue to the
      actual command being used. */
     
-	self.command = [s.getToken uppercaseString];
+	self.command = [[s getToken] uppercaseString];
 	
 	self.numericReply = [self.command integerValue];
 
@@ -154,13 +159,13 @@
      there is not much left to the parse. Just searching for the beginning
      of a message segment or getting the next token. */
     
-	while (NSObjectIsNotEmpty(s)) {
+	while ([s length] > 0) {
 		if ([s hasPrefix:@":"]) {
-			[self.params safeAddObject:[s safeSubstringFromIndex:1]];
+			[self.params addObject:[s substringFromIndex:1]];
 			
 			break;
 		} else {
-			[self.params safeAddObject:s.getToken];
+			[self.params addObject:[s getToken]];
 		}
 	}
 	
@@ -168,8 +173,8 @@
 
 - (NSString *)paramAt:(NSInteger)index
 {
-	if (index < self.params.count) {
-		return [self.params safeObjectAtIndex:index];
+	if (index < [self.params count]) {
+		return self.params[index];
 	} else {
 		return NSStringEmptyPlaceholder;
 	}
@@ -188,8 +193,8 @@
 {
 	NSMutableString *s = [NSMutableString string];
 	
-	for (NSInteger i = index; i < self.params.count; i++) {
-		NSString *e = [self.params safeObjectAtIndex:i];
+	for (NSInteger i = index; i < [self.params count]; i++) {
+		NSString *e = self.params[i];
 		
 		if (NSDissimilarObjects(i, index)) {
 			[s appendString:NSStringWhitespacePlaceholder];

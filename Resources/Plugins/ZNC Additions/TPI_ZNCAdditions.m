@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -67,20 +67,33 @@
 				  message:(NSString *)messageString
 				  command:(NSString *)commandString
 {
-	if ([commandString isEqualIgnoringCase:@"DETACH"]) {
+	BOOL isDetach = [commandString isEqualIgnoringCase:@"DETACH"];
+	BOOL isAttach = [commandString isEqualIgnoringCase:@"ATTACH"];
+	
+	if (isAttach || isDetach) {
 		if (client.isZNCBouncerConnection == NO) {
 			[client printDebugInformation:TPILS(@"ZNCIsNotAvailable")];
 
 			return;
 		}
 		
+		IRCChannel *matchedChannel;
+		
 		if ([messageString isChannelName:client]) {
-			[client sendLine:[NSString stringWithFormat:@"%@ %@", commandString, messageString]];
+			matchedChannel = [client findChannel:messageString];
 		} else {
-			IRCChannel *channel = self.worldController.selectedChannel;
-
-			if ([channel isChannel]) {
-				[client sendLine:[NSString stringWithFormat:@"%@ %@", commandString, channel.name]];
+			matchedChannel = self.worldController.selectedChannel;
+		}
+		
+		if (matchedChannel) {
+			[matchedChannel.config setAutoJoin:isAttach];
+			
+			if (isDetach) {
+				[client sendLine:[NSString stringWithFormat:@"%@ %@", commandString, matchedChannel.name]];
+			
+				[client printDebugInformation:TPIFLS(@"ZNCChannelHasBeenDetached", matchedChannel.name) channel:matchedChannel];
+			} else {
+				[client sendLine:[NSString stringWithFormat:@"%@ %@", IRCPublicCommandIndex("join"), matchedChannel.name]];
 			}
 		}
 	}
@@ -88,7 +101,7 @@
 
 - (NSArray *)pluginSupportsUserInputCommands
 {
-	return @[@"detach"];
+	return @[@"detach", @"attach"];
 }
 
 - (NSArray *)pluginSupportsServerInputCommands
@@ -116,24 +129,28 @@
 	NSMutableString *s = [input.params[1] mutableCopy];
 
 	/* Define user information. */
-	NSString *hostmask = s.getToken;
-	NSString *nickname = [hostmask nicknameFromHostmask];
+	NSString *hostmask = [s getToken];
 
-	if ([nickname isEqualToString:[client localNickname]]) {
-		return input; // Do not post these events for self.
+	NSString *nicknameInt = nil;
+	NSString *usernameInt = nil;
+	NSString *addressInt = nil;
+
+	input.sender.hostmask = hostmask;
+
+	if ([hostmask hostmaskComponents:&nicknameInt username:&usernameInt address:&addressInt client:client]) {
+		input.sender.nickname = nicknameInt;
+		input.sender.username = usernameInt;
+		input.sender.address = addressInt;
+
+		if ([input.sender.nickname isEqualToString:[client localNickname]]) {
+			return input; // Do not post these events for self.
+		}
+	} else {
+		input.sender.nickname = hostmask;
+		input.sender.isServer = YES;
 	}
 
 	input.isPrintOnlyMessage = YES;
-
-	input.sender.hostmask = hostmask;
-	input.sender.nickname = nickname;
-
-	if ([hostmask isHostmask]) {
-		input.sender.username = [hostmask usernameFromHostmask];
-		input.sender.address = [hostmask addressFromHostmask];
-	} else {
-		input.sender.isServer = YES;
-	}
 
 	/* Start actual work. */
 	if ([s hasPrefix:@"is now known as "]) {

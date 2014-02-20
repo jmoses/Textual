@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -73,60 +73,18 @@
 {
 	NSObjectIsEmptyAssert(keyword);
 
-	keyword = [NSString stringWithFormat:@"Saved Window State —> Internal —> %@", keyword];
+	keyword = [NSString stringWithFormat:@"—> Internal (v2) —> %@", keyword];
 
-	NSMutableDictionary *dic = [NSMutableDictionary dictionary];
-
-	NSRect rect = self.frame;
-
-	[dic setInteger:rect.origin.x forKey:@"x"];
-	[dic setInteger:rect.origin.y forKey:@"y"];
-	[dic setInteger:rect.size.width forKey:@"w"];
-	[dic setInteger:rect.size.height forKey:@"h"];
-
-	[TPCPreferences saveWindowState:dic name:keyword];
+	[self saveFrameUsingName:keyword];
 }
 
 - (void)restoreWindowStateUsingKeyword:(NSString *)keyword
 {
 	NSObjectIsEmptyAssert(keyword);
 
-	keyword = [NSString stringWithFormat:@"Saved Window State —> Internal —> %@", keyword];
+	keyword = [NSString stringWithFormat:@"—> Internal (v2) —> %@", keyword];
 
-	NSDictionary *dic = [TPCPreferences loadWindowStateWithName:keyword];
-
-	BOOL invalidateSavedState = NSDissimilarObjects(dic.count, 4);
-
-	NSRect visibleRect = [RZMainScreen() frame];
-
-	NSRect currFrame = self.frame;
-	
-	NSInteger x = [dic integerForKey:@"x"];
-	NSInteger y = [dic integerForKey:@"y"];
-
-	NSInteger oldHeight = [dic integerForKey:@"h"];
-	NSInteger heightDff = (oldHeight - currFrame.size.height);
-
-	y += heightDff;
-	
-	if ((x + currFrame.size.width) > visibleRect.size.width) {
-		invalidateSavedState = YES;
-	}
-
-	if ((y + currFrame.size.height) > visibleRect.size.height) {
-		invalidateSavedState = YES;
-	}
-
-	if (invalidateSavedState) {
-		[self exactlyCenterWindow];
-
-		return;
-	}
-
-	currFrame.origin.x = x;
-	currFrame.origin.y = y;
-
-	[self setFrame:currFrame display:YES animate:YES];
+	[self setFrameAutosaveName:keyword];
 }
 
 - (BOOL)isInFullscreenMode

@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -41,8 +41,8 @@
 @interface TDCTopicSheet : TDCSheetBase
 @property (nonatomic, strong) NSString *clientID;
 @property (nonatomic, strong) NSString *channelID;
-@property (nonatomic, nweak) NSTextField *headerTitleField;
-@property (nonatomic, uweak) TVCTextField *topicValueField;
+@property (nonatomic, nweak) IBOutlet NSTextField *headerTitleField;
+@property (nonatomic, uweak) IBOutlet TVCTextViewWithIRCFormatter *topicValueField;
 
 - (void)start:(NSString *)topic;
 @end

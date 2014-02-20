@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -37,18 +37,29 @@
 
 #import "TextualApplication.h"
 
+#define TVCLogControllerHistoricLogSharedInstance()				[TVCLogControllerHistoricLogFile sharedInstance]
+
 @interface TVCLogControllerHistoricLogFile : NSObject
-@property (nonatomic, nweak) TVCLogController *owner;
-@property (nonatomic, assign) NSInteger maxEntryCount;
+@property (nonatomic, strong, readonly) NSManagedObjectContext *managedObjectContext;
 
-- (void)open;
-- (void)close;
-- (void)reset;
-- (void)reopenIfNeeded;
++ (TVCLogControllerHistoricLogFile *)sharedInstance;
 
-- (void)updateCache; // Force update property list cache.
+- (void)saveData;
 
-- (NSDictionary *)data;;
+- (void)resetContext;
 
-- (void)writePropertyListEntry:(NSDictionary *)s toKey:(NSString *)key;
+- (void)resetData;
+- (void)resetDataForEntriesMatchingClient:(IRCClient *)client inChannel:(IRCChannel *)channel;
+
+- (void)refreshObject:(id)object;
+
+- (void)processPendingChanges;
+
+/* fetchLimit: and afterDate: are optional. Supply either 0 or nil to skip. */
+/* The default fetchLimit is set to 1000 and reference date is 1/1/2001 */
+- (void)entriesForClient:(IRCClient *)client
+			   inChannel:(IRCChannel *)channel
+	 withCompletionBlock:(void (^)(NSArray *objects))completionBlock
+			  fetchLimit:(NSInteger)maxEntryCount
+			   afterDate:(NSDate *)referenceDate;
 @end

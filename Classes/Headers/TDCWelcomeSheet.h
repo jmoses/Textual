@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -39,22 +39,22 @@
 #import "TextualApplication.h"
 
 @interface TDCWelcomeSheet : TDCSheetBase <NSTextViewDelegate>
-@property (nonatomic, nweak) NSButton *autoConnectCheck;
-@property (nonatomic, nweak) NSButton *addChannelButton;
-@property (nonatomic, nweak) NSButton *deleteChannelButton;
-@property (nonatomic, nweak) NSTextField *nicknameField;
-@property (nonatomic, nweak) NSComboBox *serverAddressField;
-@property (nonatomic, nweak) TVCListView *channelTable;
+@property (nonatomic, nweak) IBOutlet NSButton *autoConnectCheck;
+@property (nonatomic, nweak) IBOutlet NSButton *addChannelButton;
+@property (nonatomic, nweak) IBOutlet NSButton *deleteChannelButton;
+@property (nonatomic, nweak) IBOutlet NSTextField *nicknameField;
+@property (nonatomic, nweak) IBOutlet NSComboBox *serverAddressField;
+@property (nonatomic, nweak) IBOutlet TVCListView *channelTable;
 @property (nonatomic, strong) NSMutableArray *channelList;
 @property (nonatomic, strong) NSDictionary *serverList;
 
 - (void)show;
 - (void)close;
 
-- (void)onAddChannel:(id)sender;
-- (void)onDeleteChannel:(id)sender;
+- (IBAction)onAddChannel:(id)sender;
+- (IBAction)onDeleteChannel:(id)sender;
 
-- (void)onServerAddressChanged:(id)sender;
+- (IBAction)onServerAddressChanged:(id)sender;
 @end
 
 @interface NSObject (TDCWelcomeSheetDelegate)

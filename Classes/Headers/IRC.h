@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -40,10 +40,17 @@
 /* Hard limits. */
 #define TXMaximumIRCBodyLength				512
 #define TXMaximumIRCNicknameLength			50
+#define TXMaximumIRCUsernameLength			20
 #define TXMaximumNodesPerModeCommand		4
 
 /* "*" is not actually considered a valid character for a nickname. We include it for ZNC. */
-#define IRCNicknameValidCharacters          @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-\\[]{}^`|*"
+#define IRCNicknameValidCharacters          @"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-\\[]{}^`|"
+
+/* InspIRCd threw everything out the window when they decided to support all these special characters after _-. … */
+#define IRCUsernameValidCharacters			@"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-.[\\]^`{|}~" /* Ident. */
+
+/* Characters allowed for the address part of a hostmask. */
+#define IRCUserAddressValidCharacters		@"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-./:"
 
 /* Command index. */
 TEXTUAL_EXTERN NSString *IRCPrivateCommandIndex(const char *key); 

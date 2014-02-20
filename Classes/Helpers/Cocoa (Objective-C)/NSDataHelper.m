@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.pdf and Acknowledgements.pdf
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -37,6 +37,8 @@
  *********************************************************************** */
 
 #import "TextualApplication.h"
+
+#import <CommonCrypto/CommonDigest.h>
 
 @implementation NSData (TXDataHelper)
 
@@ -86,6 +88,21 @@
 	}
 	
 	return YES;
+}
+
+- (NSString *)sha1
+{
+	uint8_t digest[CC_SHA1_DIGEST_LENGTH];
+	
+    CC_SHA1([self bytes], (CC_LONG)[self length], digest);
+	
+    NSMutableString *output = [NSMutableString stringWithCapacity:(CC_SHA1_DIGEST_LENGTH * 2)];
+	
+    for (int i = 0; i < CC_SHA1_DIGEST_LENGTH; i++) {
+        [output appendFormat:@"%02x", digest[i]];
+    }
+	
+	return output;
 }
 
 @end

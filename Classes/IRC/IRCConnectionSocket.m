@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -119,7 +119,7 @@
 		[self onSocket:self.socketConnection willDisconnectWithError:connError];
 
 		if ([self useNewSocketEngine] == NO) {
-			[self onSocketDidDisconnect:self.socketConnection];
+			[self onSocketDidDisconnect:self.socketConnection withError:nil];
 		}
 	}
 }
@@ -189,6 +189,11 @@
 #pragma mark -
 #pragma mark Primary Socket Delegate
 
+- (NSString *)connectedAddress
+{
+	return [self.socketConnection connectedHost];
+}
+
 - (BOOL)onSocketWillConnect:(id)sock
 {
 	if (self.connectionUsesSystemSocks) {
@@ -220,30 +225,20 @@
 	self.isConnected = YES;
 
 	[self performSelector:@selector(tcpClientDidConnect)];
-
-	if (self.client.rawModeEnabled) {
-		LogToConsole(@"Debug Information:");
-		LogToConsole(@"	Connected Host: %@", [sock connectedHost]);
-		LogToConsole(@"	Connected Port: %hu", [sock connectedPort]);
-	} else {
-		DebugLogToConsole(@"Debug Information:");
-		DebugLogToConsole(@"	Connected Host: %@", [sock connectedHost]);
-		DebugLogToConsole(@"	Connected Port: %hu", [sock connectedPort]);
-	}
 }
 
-- (void)onSocketDidDisconnect:(id)sock
+- (void)onSocketDidDisconnect:(id)sock withError:(NSError *)distcError;
 {
 	[self closeSocket];
 
-	[self performSelector:@selector(tcpClientDidDisconnect)];
+	[self performSelector:@selector(tcpClientDidDisconnect:) withObject:distcError];
 }
 
 - (void)onSocket:(id)sender willDisconnectWithError:(NSError *)error
 {
 	if (PointerIsEmpty(error) || [error code] == errSSLClosedGraceful) {
 		if ([self useNewSocketEngine]) {
-			[self onSocketDidDisconnect:sender];
+			[self onSocketDidDisconnect:sender withError:nil];
 		}
 	} else {
 		NSString *errorMessage = nil;
@@ -263,7 +258,7 @@
 		}
 
 		if ([self useNewSocketEngine]) {
-			[self onSocketDidDisconnect:sender];
+			[self onSocketDidDisconnect:sender withError:error];
 		}
 	}
 }
@@ -272,7 +267,7 @@
 {
 	NSMutableData *readBuffer;
 
-	BOOL hasOverflowPrefix = NSObjectIsNotEmpty(self.bufferOverflowString);
+	BOOL hasOverflowPrefix = ([self.bufferOverflowString length] > 0);
 
 	if (hasOverflowPrefix) {
 		readBuffer = [self.bufferOverflowString mutableCopy];

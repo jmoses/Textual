@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -47,6 +47,7 @@
 #define TLOFileLoggerActionNicknameFormat		@"• %n:"
 #define TLOFileLoggerNoticeNicknameFormat		@"-%n-"
 
+#define TLOFileLoggerISOStandardClockFormat			@"[%Y-%m-%dT%H:%M:%S%z]" // 2008-07-09T16:13:30+12:00
 #define TLOFileLoggerTwentyFourHourClockFormat		@"[%H:%M:%S]"
 
 @interface TLOFileLogger : NSObject
@@ -61,10 +62,8 @@
 - (void)reset;
 - (void)reopenIfNeeded;
 
-- (void)updateWriteCache;
-- (void)updateWriteCacheTimer;
-
 - (NSURL *)buildPath;
 
+- (void)writeLine:(TVCLogLine *)logLine;
 - (void)writePlainTextLine:(NSString *)s;
 @end

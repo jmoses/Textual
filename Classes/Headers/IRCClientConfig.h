@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -53,8 +53,6 @@ typedef enum TXConnectionProxyType : NSInteger {
 	TXConnectionSocks5ProxyType = 5,
 } TXConnectionProxyType;
 
-NSComparisonResult IRCChannelDataSort(IRCChannel *s1, IRCChannel *s2, void *context);
-
 @interface IRCClientConfig : NSObject <NSMutableCopying>
 @property (nonatomic, assign) BOOL autoConnect;
 @property (nonatomic, assign) BOOL autoReconnect;
@@ -62,11 +60,18 @@ NSComparisonResult IRCChannelDataSort(IRCChannel *s1, IRCChannel *s2, void *cont
 @property (nonatomic, assign) BOOL connectionPrefersIPv6;
 @property (nonatomic, assign) BOOL performPongTimer;
 @property (nonatomic, assign) BOOL performDisconnectOnPongTimer;
+@property (nonatomic, assign) BOOL performDisconnectOnReachabilityChange;
 @property (nonatomic, assign) BOOL connectionUsesSSL;
 @property (nonatomic, assign) BOOL invisibleMode;
-@property (nonatomic, assign) BOOL isTrustedConnection;
 @property (nonatomic, assign) BOOL outgoingFloodControl;
 @property (nonatomic, assign) BOOL sidebarItemExpanded;
+@property (nonatomic, assign) BOOL validateServerSSLCertificate;
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+@property (nonatomic, assign) BOOL excludedFromCloudSyncing;
+#endif
+
+@property (nonatomic, assign) BOOL zncIgnoreConfiguredAutojoin;
 @property (nonatomic, assign) BOOL zncIgnorePlaybackNotifications;		/* ZNC Related option. */
 @property (nonatomic, assign) NSInteger floodControlDelayTimerInterval;
 @property (nonatomic, assign) NSInteger floodControlMaximumMessages;
@@ -94,9 +99,36 @@ NSComparisonResult IRCChannelDataSort(IRCChannel *s1, IRCChannel *s2, void *cont
 @property (nonatomic, strong) NSString *username;
 @property (nonatomic, strong) NSString *normalLeavingComment;
 @property (nonatomic, strong) NSString *sleepModeLeavingComment;
+@property (nonatomic, strong) NSData *identitySSLCertificate;
+
+@property (nonatomic, assign) BOOL serverPasswordIsSet;
+@property (nonatomic, assign) BOOL nicknamePasswordIsSet;
+@property (nonatomic, assign) BOOL proxyPasswordIsSet;
+
+/* This dictionary contains configuration options that are not
+ accessible by the user interface. Instead, they are set bu the
+ /defaults command so that server specific features can be used 
+ by some users without the need to bloat the user interface with
+ a checkbox only a few users may use. */
+@property (nonatomic, strong) NSMutableDictionary *auxiliaryConfiguration;
+
+- (BOOL)isEqualToClientConfiguration:(IRCClientConfig *)seed;
 
 - (id)initWithDictionary:(NSDictionary *)dic;
-- (NSMutableDictionary *)dictionaryValue;
 
+- (NSMutableDictionary *)dictionaryValue;
+- (NSMutableDictionary *)dictionaryValue:(BOOL)isCloudDictionary;
+
+/* Keychain. */
 - (void)destroyKeychains;
+
+- (NSString *)temporaryNicknamePassword;
+- (NSString *)temporaryServerPassword;
+- (NSString *)temporaryProxyPassword;
+
+- (void)writeKeychainItemsToDisk;
+
+- (void)writeProxyPasswordKeychainItemToDisk;
+- (void)writeServerPasswordKeychainItemToDisk;
+- (void)writeNicknamePasswordKeychainItemToDisk;
 @end

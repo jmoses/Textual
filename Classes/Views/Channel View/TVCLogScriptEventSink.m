@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -78,11 +78,6 @@
 	return nil;
 }
 
-- (void)onDblClick:(id)e
-{
-	[self.owner logViewOnDoubleClick:e];
-}
-
 - (BOOL)shouldStopDoubleClick:(id)e
 {
 	NSInteger dr = _doubleClickRadius;
@@ -147,12 +142,12 @@
 	}
 
 	/* Find the element. */
-	DOMElement *imageNode = [self.owner.mainFrameDocument getElementById:object];
+	DOMElement *imageNode = [[self.owner mainFrameDocument] getElementById:object];
 
 	PointerIsEmptyAssertReturn(imageNode, @"true");
 
 	/* Update the display information. */
-	NSString *display = imageNode.style.display;
+	NSString *display = [[imageNode style] display];
 
 	if ([display isEqualIgnoringCase:@"none"]) {
 		display = NSStringEmptyPlaceholder;
@@ -160,7 +155,7 @@
 		display = @"none";
 	}
 
-	imageNode.style.display = display;
+	[[imageNode style] setDisplay:display];
 
 	/* Update upstream. */
 	return @"false";
@@ -168,67 +163,72 @@
 
 - (void)setURLAddress:(NSString *)s
 {
-	[self.owner.policy setAnchorURL:[s gtm_stringByUnescapingFromHTML]];
+    [[self.owner policy] setAnchorURL:[s gtm_stringByUnescapingFromHTML]];
 }
 
 - (void)setNickname:(NSString *)s
 {
-	[self.owner.policy setNickname:[s gtm_stringByUnescapingFromHTML]];
+    [[self.owner policy] setNickname:[s gtm_stringByUnescapingFromHTML]];
 }
 
 - (void)setChannelName:(NSString *)s
 {
-	[self.owner.policy setChannelName:[s gtm_stringByUnescapingFromHTML]];
+    [[self.owner policy] setChannelName:[s gtm_stringByUnescapingFromHTML]];
 }
 
 - (void)channelNameDoubleClicked
 {
-	[self.owner.policy channelDoubleClicked];
+    [[self.owner policy]channelDoubleClicked];
 }
 
 - (void)nicknameDoubleClicked
 {
-	[self.owner.policy nicknameDoubleClicked];
+    [[self.owner policy] nicknameDoubleClicked];
+}
+
+- (void)topicDoubleClicked
+{
+    [[self.owner policy] topicDoubleClicked];
 }
 
 - (NSInteger)channelMemberCount
 {
-    return self.owner.channel.memberList.count;
+    return [[self.owner channel] numberOfMembers];
 }
 
 - (NSInteger)serverChannelCount
 {
-    return self.owner.client.channels.count;
+	return [[[self.owner client] channels] count];
 }
 
 - (BOOL)serverIsConnected
 {
-    return self.owner.client.isLoggedIn;
+	return [[self.owner client] isLoggedIn];
 }
 
 - (BOOL)channelIsJoined
 {
-    return self.owner.channel.isActive;
+	return [[self.owner channel] isActive];
 }
 
 - (NSString *)channelName
 {
-	return self.owner.channel.name;
+	return [[self.owner channel] name];
 }
 
 - (NSString *)serverAddress
 {
-	return self.owner.client.networkAddress;
+	return [[self.owner client] networkAddress];
 }
 
 - (NSString *)localUserNickname
 {
-	return self.owner.client.localNickname;
+	return [[self.owner client] localNickname];
 }
 
 - (NSString *)localUserHostmask
 {
-	return self.owner.client.localHostmask;
+	return [[self.owner client] localHostmask];
 }
 
 - (void)printDebugInformationToConsole:(NSString *)m
@@ -238,7 +238,7 @@
 
 - (void)printDebugInformation:(NSString *)m
 {
-	[self.owner.client printDebugInformation:m channel:self.owner.channel];
+	[[self.owner client] printDebugInformation:m channel:[self.owner channel]];
 }
 
 - (BOOL)sidebarInversionIsEnabled

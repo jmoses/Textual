@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -38,14 +38,17 @@
 
 #import "TextualApplication.h"
 
-@interface TLOFileLogger ()
-@property (strong) NSMutableString *temporaryWriteString;
-@end
-
 @implementation TLOFileLogger
 
 #pragma mark -
 #pragma mark Plain Text API
+
+- (void)writeLine:(TVCLogLine *)logLine
+{
+	NSString *lineString = [logLine renderedBodyForTranscriptLogInChannel:self.channel];
+
+	[self writePlainTextLine:lineString];
+}
 
 - (void)writePlainTextLine:(NSString *)s
 {
@@ -57,61 +60,12 @@
 
 	NSObjectIsEmptyAssert(writeString);
 	
-	if ([TPCPreferences logTranscriptInBatches]) {
-		/* If we are going to log in batches, then make sure we have
-		 a string to append data to. */
-		if (PointerIsEmpty(self.temporaryWriteString)) {
-			self.temporaryWriteString = [NSMutableString string];
-		}
-
-		[self.temporaryWriteString appendString:writeString];
-	} else {
-		/* Write straight to file. */
-		NSData *writeData = [self.client convertToCommonEncoding:writeString];
-		
-		NSObjectIsEmptyAssert(writeData);
-
-		[self.file writeData:writeData];
-	}
-}
-
-- (void)updateWriteCacheInternalInit
-{
-	/* Twenty seconds seems a fair value… */
-	[self performSelector:@selector(updateWriteCacheInternalInit) withObject:nil afterDelay:20.0];
-
-	/* Write buffer. */
-	[self updateWriteCache];
-}
-
-- (void)updateWriteCache
-{
-	NSObjectIsEmptyAssert(self.temporaryWriteString);
+	/* Write straight to file. */
+	NSData *writeData = [writeString dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
 	
-	/* Write cache to the file. */
-	NSData *writeData = [self.client convertToCommonEncoding:self.temporaryWriteString];
+	NSObjectIsEmptyAssert(writeData);
 
 	[self.file writeData:writeData];
-
-	/* Remove cache. */
-	[self.temporaryWriteString setString:NSStringEmptyPlaceholder];
-}
-
-- (void)updateWriteCacheTimer
-{
-	/* Cancel any previous perform requests. aka timers. */
-	[NSObject cancelPreviousPerformRequestsWithTarget:self];
-
-	if ([TPCPreferences logTranscriptInBatches]) {
-		/* Clear any existing buffer and reset timer. */
-		[self updateWriteCacheInternalInit];
-	} else {
-		/* We aren't writing in batches anymore. Do we have a previous cache? */
-		[self updateWriteCache];
-
-		/* nil out any existing cache store. */
-		self.temporaryWriteString = nil;
-	}
 }
 
 #pragma mark -
@@ -122,8 +76,6 @@
 	/* Reset plain text file. */
 	PointerIsEmptyAssert(self.file);
 
-	self.temporaryWriteString = nil;
-
 	[self.file truncateFileAtOffset:0];
 }
 
@@ -131,8 +83,6 @@
 {
 	/* Close plain text file. */
 	PointerIsEmptyAssert(self.file);
-
-	[self updateWriteCache];
 
 	[self.file closeFile];
 	self.file = nil;
@@ -146,7 +96,7 @@
 	 the date as the filename. When the date changes, the log path
 	 will have to change as well. This handles that. */
 
-	if ([self.filename isEqual:self.buildFileName] == NO) {
+	if ([[self buildFileName] isEqual:self.filename] == NO) {
 		[self open];
 	}
 }
@@ -207,8 +157,6 @@
 	if (self.file) {
 		[self.file seekToEndOfFile];
 	}
-
-	[self updateWriteCacheInternalInit];
 }
 
 #pragma mark -
@@ -273,7 +221,7 @@
 {
 	NSDate *filename = [[NSDate date] dateWithCalendarFormat:@"%Y-%m-%d" timeZone:nil];
 
-	NSURL *buildPath = self.buildPath;
+	NSURL *buildPath = [self buildPath];
 
 	NSObjectIsEmptyAssertReturn(buildPath, nil);
 

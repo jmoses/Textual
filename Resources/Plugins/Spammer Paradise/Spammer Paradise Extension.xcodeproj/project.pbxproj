@@ -202,7 +202,6 @@
 			buildSettings = {
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = SpammerParadise;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Debug;
 		};
@@ -212,7 +211,6 @@
 			buildSettings = {
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_NAME = SpammerParadise;
-				WRAPPER_EXTENSION = bundle;
 			};
 			name = Release;
 		};

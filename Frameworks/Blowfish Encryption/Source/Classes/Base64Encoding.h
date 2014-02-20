@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.pdf and Acknowledgements.pdf
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -35,19 +35,7 @@
 
  *********************************************************************** */
 
-/* This source file contains modified work of the original Dirt IRC proxy
- project hosted at: http://sourceforge.net/projects/dirtirc */
-
-// Copyright (c) 2005-2013 Mathias Karlsson
-//
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-//
-// Please see License.txt for further information.
-
 @interface CSFWBase64Encoding : NSObject
-+ (NSString *)encodeData:(NSString *)input;
-+ (NSString *)decodeData:(NSString *)input;
++ (NSString *)encodeData:(NSData *)input;
++ (NSData *)decodeData:(NSString *)input;
 @end

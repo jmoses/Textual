@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -194,10 +194,25 @@ Textual = {
 	/* Contextual menu management and other resources.
 	 We do not recommend anyone try to override these. */
 	
-	openChannelNameContextualMenu: 			function() { app.setChannelName(event.target.innerHTML); },
-	openURLManagementContextualMenu:		function() { app.setURLAddress(event.target.innerHTML); },
-	openInlineNicknameContextualMenu:		function() { app.setNickname(event.target.innerHTML); }, // Conversation Tracking
-	openStandardNicknameContextualMenu: 	function() { app.setNickname(event.target.getAttribute("nick")); },
+	openChannelNameContextualMenu: function() { 
+		app.setChannelName(event.target.innerHTML); 
+	},
+
+	openURLManagementContextualMenu: function() { 
+		app.setURLAddress(event.target.innerHTML); 
+	},
+
+	openInlineNicknameContextualMenu: function() { 
+		app.setNickname(event.target.innerHTML); 
+	}, // Conversation Tracking
+	
+	openStandardNicknameContextualMenu: function() {
+		app.setNickname(event.target.getAttribute("nick"));
+	},
+	
+	nicknameSingleClicked: function() {
+		// API does not handle this action by default…
+	},
 	
 	nicknameDoubleClicked: function() { 
 		Textual.openStandardNicknameContextualMenu();
@@ -216,6 +231,10 @@ Textual = {
 
 		app.nicknameDoubleClicked();
 	},
+
+    topicDoubleClicked: function() {
+        app.topicDoubleClicked();
+    },
 	
 	toggleInlineImage: function(object) {
 		if (app.toggleInlineImage(object) == "false") {

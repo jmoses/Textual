@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.pdf and Acknowledgements.pdf
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -66,26 +66,26 @@
 
 - (NSString *)generatePublicKey
 {
-	NSString *publicKeyRaw = [self.keyExchanger rawPublicKey];
-
+	NSData *publicKeyRaw = [self.keyExchanger rawPublicKey];
+	
     if (publicKeyRaw.length >= 1) {
         return [self.keyExchanger publicKeyValue:publicKeyRaw];
     }
-
+	
 	return nil;
 }
 
 - (NSString *)secretKeyFromPublicKey:(NSString *)publicKey
 {
-	publicKey = [self.keyExchanger base64Decode:publicKey];
+	NSData *publicKeyData = [self.keyExchanger base64Decode:publicKey];
 
-	if (publicKey.length < DH1080RequiredKeyLength ||
-		publicKey.length > DH1080RequiredKeyLength) {
-
+	if (publicKeyData.length < DH1080RequiredKeyLength ||
+		publicKeyData.length > DH1080RequiredKeyLength)
+	{
 		return nil;
 	}
-
-	[self.keyExchanger setKeyForComputation:publicKey];
+	
+	[self.keyExchanger setKeyForComputation:publicKeyData];
 	[self.keyExchanger computeKey];
 
 	NSString *secretString = [self.keyExchanger secretStringValue];

@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[self clear];
+		[self clear:YES];
 	}
 
 	return self;
@@ -70,7 +70,7 @@
 	IRCClient *client = self.worldController.selectedClient;
 	IRCChannel *channel = self.worldController.selectedChannel;
 	
-	TVCInputTextField *inputTextField = self.masterController.inputTextField;
+	TVCMainWindowTextView *inputTextField = self.masterController.inputTextField;
 
 	PointerIsEmptyAssert(client);
 
@@ -132,7 +132,11 @@
 
 	if (canContinuePreviousScan == NO) {
 		/* If this is a new scan, then reset all our ranges to begin with. */
-		[self clear];
+		if ([self.cachedTextFieldStringValue isEqualToString:s]) {
+			[self clear:NO];
+		} else {
+			[self clear:YES];
+		}
 
 		/* Before we do anything, we must establish where we are starting. 
 		 If the length of selectedRange is above zero, then it means the
@@ -229,6 +233,7 @@
 
 						if ([css hasPrefix:ucs]) {
 							isAtEnd = NO;
+
 							ci = (i + css.length); // Index before this char.
 
 							break;
@@ -256,7 +261,16 @@
 				 anything after the backwardCut when we replace. */
 				NSRange fcr = self.lastCompletionFragmentRange;
 
-				fcr.length += selectedCut.length;
+				if (self.cachedLastCompleteStringValue) {
+					if (backwardCut && selectedCut) {
+						/* Only cut forward if the combined cut is equal to the previous complete. */
+						NSString *combinedCut = [backwardCut stringByAppendingString:selectedCut];
+						
+						if (NSObjectsAreEqual(self.cachedLastCompleteStringValue, combinedCut)) {
+							fcr.length += [selectedCut length];
+						}
+					}
+				}
 
 				/* Update state information. */
 				if ((fcr.location + fcr.length + 1) >= s.length) {
@@ -336,8 +350,8 @@
 			[upperChoices safeAddObject:[command lowercaseString]];
 		}
 
-		[upperChoices addObjectsFromArray:[RZPluginManager() supportedUserInputCommands]];
-		[upperChoices addObjectsFromArray:[RZPluginManager() supportedAppleScriptCommands]];
+		[upperChoices addObjectsFromArray:[THOPluginManagerSharedInstance() supportedUserInputCommands]];
+		[upperChoices addObjectsFromArray:[THOPluginManagerSharedInstance() supportedAppleScriptCommands]];
 	} else if (channelMode) {
 		// Prioritize selected channel for channel completion
 		[upperChoices safeAddObject:channel.name];
@@ -348,7 +362,7 @@
 			}
 		}
 	} else {
-		NSArray *memberList = [channel.memberList sortedArrayUsingSelector:@selector(compareUsingWeights:)];
+		NSArray *memberList = [[channel unsortedMemberList] sortedArrayUsingSelector:@selector(compareUsingWeights:)];
 
 		for (IRCUser *m in memberList) {
 			[upperChoices safeAddObject:m.nickname];
@@ -452,12 +466,17 @@
 
 		ut = [backwardCutStringAddition stringByAppendingString:ut];
 	}
+	
+	/* Cache value. */
+	self.cachedLastCompleteStringValue = ut;
 
 	/* Add the completed string to the spell checker so that a nickname
 	 wont show up as spelled incorrectly. The spell checker is cleared
 	 of these ignores between channel changes. */
 	[RZSpellChecker() ignoreWord:ut inSpellDocumentWithTag:inputTextField.spellCheckerDocumentTag];
 
+	inputTextField.hasModifiedSpellingDictionary = YES;
+	
 	/* Create our final string. */
 	if (commandMode || channelMode || isAtStart == NO) {
 		BOOL addWhitespace = YES;
@@ -477,7 +496,23 @@
 		NSString *completeSuffix = [TPCPreferences tabCompletionSuffix];
 
 		if (NSObjectIsNotEmpty(completeSuffix)) {
-			ut = [ut stringByAppendingString:completeSuffix];
+			BOOL addWhitespace = YES;
+
+			if ([completeSuffix isEqualToString:NSStringWhitespacePlaceholder]) {
+				NSInteger nextIndx = (self.lastCompletionCompletedRange.length + self.lastCompletionCompletedRange.location);
+				
+				if ([s length] > nextIndx) {
+					NSString *nextChar = [s stringCharacterAtIndex:nextIndx];
+					
+					if ([nextChar isEqualToString:NSStringWhitespacePlaceholder]) {
+						addWhitespace = NO;
+					}
+				}
+			}
+
+			if (addWhitespace) {
+				ut = [ut stringByAppendingString:completeSuffix];
+			}
 		}
 	}
 
@@ -517,10 +552,14 @@
 	self.cachedBackwardCutStringValue = backwardCut;
 }
 
-- (void)clear
+- (void)clear:(BOOL)clearLastValue
 {
 	self.cachedTextFieldStringValue = nil;
 	self.cachedBackwardCutStringValue = nil;
+	
+	if (clearLastValue) {
+		self.cachedLastCompleteStringValue = nil;
+	}
 
 	self.lastCompletionSelectionIndex = NSNotFound;
 

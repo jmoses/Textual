@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -44,9 +44,9 @@ highlights for a server by using Command+5 or the actual Windows menu bar item. 
 @interface TDCHighlightEntrySheet : TDCSheetBase
 @property (nonatomic, assign) BOOL newItem;
 @property (nonatomic, strong) NSString *clientID; // To reference a channel list.
-@property (nonatomic, nweak) NSTextField *matchKeywordTextField;
-@property (nonatomic, nweak) NSPopUpButton *matchTypePopupButton;
-@property (nonatomic, nweak) NSPopUpButton *matchChannelPopupButton;
+@property (nonatomic, nweak) IBOutlet NSTextField *matchKeywordTextField;
+@property (nonatomic, nweak) IBOutlet NSPopUpButton *matchTypePopupButton;
+@property (nonatomic, nweak) IBOutlet NSPopUpButton *matchChannelPopupButton;
 @property (nonatomic, strong) TDCHighlightEntryMatchCondition *config;
 
 - (void)start;

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -75,7 +75,7 @@
 		BOOL underlineText  = ([dict integerForKey:NSUnderlineStyleAttributeName] == 1);
 		
 		if (underlineText)  { [result appendFormat:@"%c", 0x1F]; }
-		if (italicText)     { [result appendFormat:@"%c", 0x16]; }
+		if (italicText)     { [result appendFormat:@"%c", 0x1d]; }
 		if (boldText)       { [result appendFormat:@"%c", 0x02]; }
 		
 		if (color) {
@@ -90,7 +90,7 @@
 		
 		if (color)          { [result appendFormat:@"%c", 0x03]; }
 		if (boldText)       { [result appendFormat:@"%c", 0x02]; }
-		if (italicText)     { [result appendFormat:@"%c", 0x16]; }
+		if (italicText)     { [result appendFormat:@"%c", 0x1d]; }
 		if (underlineText)  { [result appendFormat:@"%c", 0x1F]; }
 		
 		limitRange = NSMakeRange(NSMaxRange(effectiveRange), (NSMaxRange(limitRange) - NSMaxRange(effectiveRange)));
@@ -129,7 +129,7 @@
 	
     NSInteger baseMath = 0;
 	
-	baseMath += (channelName.length + hostmask.length);
+	baseMath += ([channelName length] + [hostmask length]);
 
 	if (type == TVCLogLinePrivateMessageType || type == TVCLogLineActionType) {
 		baseMath += _textTruncationPRIVMSGCommandConstant;
@@ -151,7 +151,7 @@
 	NSInteger stopCharCount = 0;
 	
 	NSRange effectiveRange;
-	NSRange limitRange = NSMakeRange(0, base.length);
+	NSRange limitRange = NSMakeRange(0, [base length]);
 	
 	while (limitRange.length > 0) {
 		/* Reset locals. */
@@ -167,7 +167,9 @@
 		 any formatting attached. */
 		/* ///////////////////////////////////////////////////// */
 		
-		NSDictionary *dict = [base safeAttributesAtIndex:limitRange.location longestEffectiveRange:&effectiveRange inRange:limitRange];
+		NSDictionary *dict = [base safeAttributesAtIndex:limitRange.location
+								   longestEffectiveRange:&effectiveRange
+												 inRange:limitRange];
 
 		NSInteger foregroundColor = [TVCLogRenderer mapColorValue:dict[NSForegroundColorAttributeName]];
 		NSInteger backgroundColor = [TVCLogRenderer mapColorValue:dict[NSBackgroundColorAttributeName]];
@@ -218,7 +220,7 @@
 			newLength = (baseMath					+ // The base length. Beginning of string.
 						 totalCalculatedLength		+ // Length of what we have already formatted.
 						 formattingCharacterCount	+ // The formatting characters for this segment.
-						 2);						 // The sad little two. A single unicode character.
+						 2);						  // The sad little two. A single unicode character.
 
 			/* Will this new segment exceed the maximum size? */
 			if (newLength >= TXMaximumIRCBodyLength) {
@@ -235,7 +237,7 @@
 		/* Append the actual formatting. This uses the same technology used
 		 in the above defined -attributedStringToASCIIFormatting method. */
 		if (underlineText)  { [result appendFormat:@"%c", 0x1F]; }
-		if (italicText)     { [result appendFormat:@"%c", 0x16]; }
+		if (italicText)     { [result appendFormat:@"%c", 0x1d]; }
 		if (boldText)       { [result appendFormat:@"%c", 0x02]; }
 
 		if (foregroundColorD) {
@@ -258,7 +260,7 @@
 		for (NSInteger i = 0; i < effectiveRange.length; i ++) {
 			NSInteger clocal = (effectiveRange.location + i);
 
-			UniChar c = [base.string characterAtIndex:clocal];
+			UniChar c = [[base string] characterAtIndex:clocal];
 
 			/* Update math. */
 			NSInteger characterSize = 1;
@@ -266,6 +268,9 @@
 			if (c > 0x7f) {
 				characterSize = 2;
 			}
+
+			/* Update locals. */
+			totalCalculatedLength += characterSize;
 
 			/* Would this character go over the max body length? */
 			if ((totalCalculatedLength + characterSize) >= TXMaximumIRCBodyLength) {
@@ -277,8 +282,9 @@
 				 truncation. Not half-assed ones. Therefore, if we have a space character
 				 and it is within a certain range of the end of the line, then we will stop
 				 append at that instead of breaking inside of a word. */
+				NSInteger minIndex = (([result length] - 1) - _textTruncationSpacePositionMaxDifferential);
 
-				NSRange searchRange = NSMakeRange(0, result.length);
+				NSRange searchRange = NSMakeRange(minIndex, _textTruncationSpacePositionMaxDifferential);
 
 				NSRange spaceRange = [result rangeOfString:NSStringWhitespacePlaceholder
 												   options:NSBackwardsSearch
@@ -301,8 +307,7 @@
 				break; // Stop here if it goes out of bounds.
 			}
 
-			/* Update locals. */
-			totalCalculatedLength += characterSize;
+			/* Only update if we aren't at max. */
 			stringDeletionLength += 1;
 
 			/* Do the actual append. */
@@ -311,7 +316,7 @@
 
 		if (foregroundColorD)   { [result appendFormat:@"%c", 0x03]; }
 		if (boldText)           { [result appendFormat:@"%c", 0x02]; }
-		if (italicText)         { [result appendFormat:@"%c", 0x16]; }
+		if (italicText)         { [result appendFormat:@"%c", 0x1d]; }
 		if (underlineText)      { [result appendFormat:@"%c", 0x1F]; }
 
 		if (breakLoopAfterAppend) {
@@ -319,7 +324,7 @@
 		}
 
 		effectiveRange.location = stringDeletionLength;
-		effectiveRange.length   = (base.string.length - stringDeletionLength);
+		effectiveRange.length   = ([base length] - stringDeletionLength);
 
 		limitRange = effectiveRange;
 	}
@@ -336,7 +341,7 @@
 #pragma mark -
 #pragma mark General Formatting Calls
 
-@implementation TVCTextField (TextFieldFormattingHelper)
+@implementation TVCTextViewWithIRCFormatter (TextFieldFormattingHelper)
 
 - (BOOL)IRCFormatterAttributeSetInRange:(IRCTextFormatterEffectType)effect 
                                   range:(NSRange)limitRange 

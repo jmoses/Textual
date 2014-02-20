@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -48,11 +48,11 @@
 BOOL NSObjectIsEmpty(id obj)
 {
 	if ([obj respondsToSelector:@selector(length)]) {
-		return (PointerIsEmpty(obj) || (NSInteger)[obj performSelector:@selector(length)] < 1);
+		return ((NSInteger)[obj performSelector:@selector(length)] < 1);
 	}
 
 	if ([obj respondsToSelector:@selector(count)]) {
-		return (PointerIsEmpty(obj) || (NSInteger)[obj performSelector:@selector(count)] < 1);
+		return ((NSInteger)[obj performSelector:@selector(count)] < 1);
 	}
 	
 	return PointerIsEmpty(obj);
@@ -61,6 +61,11 @@ BOOL NSObjectIsEmpty(id obj)
 BOOL NSObjectIsNotEmpty(id obj)
 {
 	return BOOLReverseValue(NSObjectIsEmpty(obj));
+}
+
+BOOL NSObjectsAreEqual(id obj1, id obj2)
+{
+    return ((obj1 == nil && obj2 == nil) || [obj1 isEqual:obj2]);
 }
 
 #pragma mark -
@@ -145,6 +150,10 @@ NSString *TXSpecialReadableTime(NSInteger dateInterval, BOOL shortValue, NSArray
 		
 		if ([finalResult length] >= 3) {
 			[finalResult safeDeleteCharactersInRange:NSMakeRange((finalResult.length - 2), 2)];
+		} else {
+			NSString *emptyTime = [NSString stringWithFormat:@"0 %@", TXTLS(@"TimeConvertPlural[SECOND]")];
+
+			[finalResult setString:emptyTime];
 		}
 		
 		return finalResult;

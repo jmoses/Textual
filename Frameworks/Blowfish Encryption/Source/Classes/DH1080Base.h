@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.pdf and Acknowledgements.pdf
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -53,16 +53,16 @@
 - (void)initalizeKeyExchange; // Do not call.
 
 - (void)computeKey;
-- (void)setKeyForComputation:(NSString *)publicKey;
+- (void)setKeyForComputation:(NSData *)publicKey;
 
 - (void)resetStatus;
 - (void)resetPublicInformation;
 
 - (NSString *)secretStringValue;
 
-- (NSString *)rawPublicKey;
-- (NSString *)publicKeyValue:(NSString *)publicInput;
+- (NSData *)rawPublicKey;
+- (NSString *)publicKeyValue:(NSData *)publicInput;
 
-- (NSString *)base64Encode:(NSString *)input;
-- (NSString *)base64Decode:(NSString *)input;
+- (NSString *)base64Encode:(NSData *)input;
+- (NSData *)base64Decode:(NSString *)input;
 @end

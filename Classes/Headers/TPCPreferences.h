@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -41,6 +41,12 @@
 #define TXDefaultTextualLogStyle			@"resource:Simplified Light"
 #define TXDefaultTextualLogFont				@"Lucida Grande"
 #define TXDefaultTextualTimestampFormat		TLOFileLoggerTwentyFourHourClockFormat
+
+#define TPCPreferencesThemeNameDefaultsKey						@"Theme -> Name"
+#define TPCPreferencesThemeFontNameDefaultsKey					@"Theme -> Font Name"
+
+#define TXDefaultFileTransferPortRangeStart				1096
+#define TXDefaultFileTransferPortRangeEnd				1115
 
 typedef enum TXNicknameHighlightMatchType : NSInteger {
 	TXNicknameHighlightPartialMatchType = 0,
@@ -85,11 +91,42 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 	TXMainTextBoxFontExtraLargeSize		= 3,
 } TXMainTextBoxFontSize;
 
+typedef enum TXFileTransferRequestReplyAction : NSInteger {
+	TXFileTransferRequestReplyIgnoreAction						= 1,
+	TXFileTransferRequestReplyOpenDialogAction					= 2,
+	TXFileTransferRequestReplyAutomaticallyDownloadAction		= 3,
+} TXFileTransferRequestReplyAction;
+
+typedef enum TXFileTransferIPAddressDetectionMethod : NSInteger {
+	TXFileTransferIPAddressAutomaticDetectionMethod			= 1,
+	TXFileTransferIPAddressManualDetectionMethod			= 2,
+} TXFileTransferIPAddressDetectionMethod;
+
+/* These actions are used for import purposes. */
+typedef enum TPCPreferencesKeyReloadAction : NSInteger {
+	TPCPreferencesKeyReloadDockIconBadgesAction,
+	TPCPreferencesKeyReloadHighlightKeywordsAction,
+	TPCPreferencesKeyReloadHighlightLoggingAction,
+	TPCPreferencesKeyReloadInputHistoryScopeAction,
+	TPCPreferencesKeyReloadMainWindowTransparencyLevelAction,
+	TPCPreferencesKeyReloadMemberListAction,
+	TPCPreferencesKeyReloadMemberListSortOrderAction,
+	TPCPreferencesKeyReloadMemberListUserBadgesAction,
+	TPCPreferencesKeyReloadPreferencesChangedAction,
+	TPCPreferencesKeyReloadServerListAction,
+	TPCPreferencesKeyReloadStyleAction,
+	TPCPreferencesKeyReloadStyleWithTableViewsAction,
+	TPCPreferencesKeyReloadTextDirectionAction,
+	TPCPreferencesKeyReloadTextFieldFontSizeAction,
+	TPCPreferencesKeyReloadTextFieldSegmentedControllerOriginAction
+} TPCPreferencesKeyReloadAction;
+
 @interface TPCPreferences : NSObject
 + (BOOL)isDefaultIRCClient;
 
 + (BOOL)sandboxEnabled;
 
++ (NSDate *)applicationLaunchDate;
 + (NSTimeInterval)timeIntervalSinceApplicationLaunch;
 + (NSTimeInterval)timeIntervalSinceApplicationInstall;
 + (void)saveTimeIntervalSinceApplicationInstall;
@@ -128,7 +165,17 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (NSString *)bundledThemeFolderPath;
 + (NSString *)bundledExtensionFolderPath;
 + (NSString *)bundledScriptFolderPath;
-+ (NSString *)systemUnsupervisedScriptFolderPath;
++ (NSString *)systemUnsupervisedScriptFolderPath; // Textual's folder.
++ (NSString *)systemUnsupervisedScriptFolderRootPath; // Root path.
++ (NSString *)userHomeDirectoryPathOutsideSandbox;
++ (NSString *)userDownloadFolderPath;
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
++ (NSString *)applicationUbiquitousContainerPath;
+
++ (NSString *)cloudCustomThemeFolderPath; // Actual iCloud folder.
++ (NSString *)cloudCustomThemeCachedFolderPath; // Where iCloud folder is cached locally.
+#endif
 
 + (BOOL)channelNavigationIsServerSpecific;
 
@@ -139,9 +186,12 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (TXMainTextBoxFontSize)mainTextBoxFontSize;
 
 + (BOOL)logTranscript;
-+ (BOOL)logTranscriptInBatches;
 
 + (BOOL)postNotificationsWhileInFocus;
+
++ (BOOL)automaticallyFilterUnicodeTextSpam;
+
++ (BOOL)conversationTrackingIncludesUserModeSymbol;
 
 + (NSURL *)transcriptFolder;
 + (void)setTranscriptFolder:(id)value;
@@ -163,6 +213,11 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (NSString *)IRCopDefaultShunMessage;
 
 + (BOOL)giveFocusOnMessageCommand;
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
++ (BOOL)syncPreferencesToTheCloud; /* ZE CLOUD! */
++ (BOOL)syncPreferencesToTheCloudLimitedToServers;
+#endif
 
 + (BOOL)amsgAllConnections;
 + (BOOL)awayAllConnections;
@@ -208,6 +263,7 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (TXCommandWKeyAction)commandWKeyAction;
 
 + (BOOL)commandReturnSendsMessageAsAction;
++ (BOOL)controlEnterSnedsMessage;
 
 + (BOOL)openBrowserInBackground;
 
@@ -230,6 +286,8 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (NSInteger)inlineImagesMaxHeight;
 + (void)setInlineImagesMaxHeight:(NSInteger)value;
 
++ (BOOL)inlineImagesDownloadsAllIgnoringCommonPatterns;
+
 + (NSString *)themeName;
 + (NSString *)themeNicknameFormat;
 + (NSString *)themeTimestampFormat;
@@ -241,7 +299,11 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (double)themeChannelViewFontSize;
 
 + (void)setThemeName:(NSString *)value;
++ (void)setThemeNameWithExistenceCheck:(NSString *)value;
+
 + (void)setThemeChannelViewFontName:(NSString *)value;
++ (void)setThemeChannelViewFontNameWithExistenceCheck:(NSString *)value;
+
 + (void)setThemeChannelViewFontSize:(double)value;
 
 + (NSInteger)maxLogLines;
@@ -263,14 +325,24 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 
 + (TXTabKeyAction)tabKeyAction;
 
++ (BOOL)fileTransferRequestsAreReversed;
+
++ (TXFileTransferRequestReplyAction)fileTransferRequestReplyAction;
++ (TXFileTransferIPAddressDetectionMethod)fileTransferIPAddressDetectionMethod;
+
++ (NSInteger)fileTransferPortRangeStart;
++ (NSInteger)fileTransferPortRangeEnd;
+
++ (void)setFileTransferPortRangeStart:(NSInteger)value;
++ (void)setFileTransferPortRangeEnd:(NSInteger)value;
+
++ (NSString *)fileTransferManuallyEnteredIPAddress;
+
 + (NSString *)tabCompletionSuffix;
 + (void)setTabCompletionSuffix:(NSString *)value;
 
 + (NSDictionary *)loadWorld;
 + (void)saveWorld:(NSDictionary *)value;
-
-+ (NSDictionary *)loadWindowStateWithName:(NSString *)name;
-+ (void)saveWindowState:(NSDictionary *)value name:(NSString *)name;
 
 + (TXNicknameHighlightMatchType)highlightMatchingMethod;
 
@@ -285,6 +357,8 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (void)cleanUpHighlightKeywords;
 
 + (void)defaultIRCClientPrompt:(BOOL)forced;
+
++ (NSDictionary *)defaultPreferences;
 
 + (void)initPreferences;
 
@@ -318,4 +392,9 @@ typedef enum TXMainTextBoxFontSize : NSInteger {
 + (BOOL)textFieldTextReplacement;
 + (void)setTextFieldTextReplacement:(BOOL)value;
 
++ (BOOL)performValidationForKeyValues:(BOOL)duringInitialization;
+
+/* The following should only be called by TPCPreferencesImportExport */
++ (void)performReloadActionForKeyValues:(NSArray *)prefKeys;
++ (void)performReloadActionForActionType:(TPCPreferencesKeyReloadAction)reloadAction;
 @end

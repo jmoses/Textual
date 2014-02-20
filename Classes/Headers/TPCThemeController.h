@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -44,16 +44,44 @@
 #define TPCThemeControllerBundledStyleNameBasicPrefix			@"resource"
 #define TPCThemeControllerBundledStyleNameCompletePrefix		@"resource:"
 
+typedef enum TPCThemeControllerStorageLocation : NSInteger {
+	TPCThemeControllerStorageBundleLocation,
+	TPCThemeControllerStorageCustomLocation,
+	TPCThemeControllerStorageCloudLocation,
+	TPCThemeControllerStorageUnknownLocation
+} TPCThemeControllerStorageLocation;
+
 @interface TPCThemeController : NSObject
 @property (nonatomic, strong) NSURL *baseURL;
-
+@property (nonatomic, strong) NSString *associatedThemeName;
+@property (nonatomic, strong) NSString *sharedCacheID;
 @property (nonatomic, strong) TPCThemeSettings *customSettings;
 
+/* Calls for the active theme. */
 - (void)load;
+
+- (NSString *)path;
+- (NSString *)actualPath; // Ignores iCloud cache and queries iCloud directly.
+
+- (NSString *)name;
+
+- (TPCThemeControllerStorageLocation)storageLocation;
+
+- (BOOL)isBundledTheme;
+
+- (BOOL)actualPathForCurrentThemeIsEqualToCachedPath;
+
+/* Calls for all themes. */
++ (BOOL)themeExists:(NSString *)themeName;
+
++ (NSString *)pathOfThemeWithName:(NSString *)themeName;
++ (NSString *)pathOfThemeWithName:(NSString *)themeName skipCloudCache:(BOOL)ignoreCloudCache;
 
 + (NSString *)buildResourceFilename:(NSString *)name;
 + (NSString *)buildUserFilename:(NSString *)name;
 
 + (NSString *)extractThemeSource:(NSString *)source;
 + (NSString *)extractThemeName:(NSString *)source;
+
++ (TPCThemeControllerStorageLocation)storageLocationOfThemeWithName:(NSString *)themeName;
 @end

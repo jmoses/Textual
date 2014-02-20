@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -37,8 +37,6 @@
 
 #import "TextualApplication.h"
 
-#import <SecurityInterface/SFCertificatePanel.h>
-
 @implementation GCDAsyncSocket (GCDsyncSocketExtensions)
 
 + (id)socketWithDelegate:(id)aDelegate delegateQueue:(dispatch_queue_t)dq socketQueue:(dispatch_queue_t)sq
@@ -50,16 +48,41 @@
 {
 	NSMutableDictionary *settings = [NSMutableDictionary dictionary];
 
-	settings[CFItemRefToID(kCFStreamSSLLevel)] = CFItemRefToID(kCFStreamSocketSecurityLevelNegotiatedSSL);
+	settings[(id)kCFStreamSSLLevel] = (id)kCFStreamSocketSecurityLevelNegotiatedSSL;
 	
-	settings[CFItemRefToID(kCFStreamSSLPeerName)] = CFItemRefToID(kCFNull);
-	settings[CFItemRefToID(kCFStreamSSLIsServer)] = CFItemRefToID(kCFBooleanFalse);
+	settings[(id)kCFStreamSSLPeerName] = (id)kCFNull;
+	settings[(id)kCFStreamSSLIsServer] = (id)kCFBooleanFalse;
 
-	if (client.config.isTrustedConnection) {
-		settings[CFItemRefToID(kCFStreamSSLAllowsAnyRoot)] = CFItemRefToID(kCFBooleanTrue);
-		settings[CFItemRefToID(kCFStreamSSLAllowsExpiredRoots)]	= CFItemRefToID(kCFBooleanTrue);
-		settings[CFItemRefToID(kCFStreamSSLAllowsExpiredCertificates)] = CFItemRefToID(kCFBooleanTrue);
-		settings[CFItemRefToID(kCFStreamSSLValidatesCertificateChain)] = CFItemRefToID(kCFBooleanFalse);
+	if (client.connectType == IRCConnectBadSSLCertificateMode ||
+		client.connectType == IRCConnectReconnectMode ||
+		client.config.validateServerSSLCertificate == NO)
+	{
+		settings[(id)kCFStreamSSLAllowsAnyRoot] = (id)kCFBooleanTrue;
+		settings[(id)kCFStreamSSLAllowsExpiredRoots] = (id)kCFBooleanTrue;
+		settings[(id)kCFStreamSSLAllowsExpiredCertificates] = (id)kCFBooleanTrue;
+		settings[(id)kCFStreamSSLValidatesCertificateChain] = (id)kCFBooleanFalse;
+	}
+	
+	if (client.config.identitySSLCertificate) {
+		SecKeychainItemRef cert;
+		
+		CFDataRef rawCertData = (__bridge CFDataRef)(client.config.identitySSLCertificate);
+		
+		OSStatus status = SecKeychainItemCopyFromPersistentReference(rawCertData, &cert);
+		
+		if (status == noErr) {
+			SecIdentityRef identity;
+			
+			status = SecIdentityCreateWithCertificate(NULL, (SecCertificateRef)cert, &identity);
+			
+			if (status == noErr) {
+				settings[(id)kCFStreamSSLCertificates] = @[(__bridge id)identity, (__bridge id)cert];
+				
+				CFRelease(identity);
+			}
+			
+			CFRelease(cert);
+		}
 	}
 
 	[self startTLS:settings];
@@ -124,7 +147,7 @@
 				didEndSelector:didEndSelector
 				   contextInfo:contextInfo
 						 trust:trust
-					 showGroup:NO];
+					 showGroup:YES];
 }
 
 - (SecTrustRef)sslCertificateTrustInformation /* @private */
@@ -155,14 +178,14 @@
 {
 	NSMutableDictionary *settings = [NSMutableDictionary dictionary];
 
-	settings[CFItemRefToID(kCFStreamSSLLevel)] = CFItemRefToID(kCFStreamSocketSecurityLevelNegotiatedSSL);
+	settings[(id)kCFStreamSSLLevel] = (id)kCFStreamSocketSecurityLevelNegotiatedSSL;
 
-	settings[CFItemRefToID(kCFStreamSSLPeerName)] = CFItemRefToID(kCFNull);
-	settings[CFItemRefToID(kCFStreamSSLIsServer)] = CFItemRefToID(kCFBooleanFalse);
-	settings[CFItemRefToID(kCFStreamSSLAllowsAnyRoot)] = CFItemRefToID(kCFBooleanTrue);
-	settings[CFItemRefToID(kCFStreamSSLAllowsExpiredRoots)]	= CFItemRefToID(kCFBooleanTrue);
-	settings[CFItemRefToID(kCFStreamSSLAllowsExpiredCertificates)] = CFItemRefToID(kCFBooleanTrue);
-	settings[CFItemRefToID(kCFStreamSSLValidatesCertificateChain)] = CFItemRefToID(kCFBooleanFalse);
+	settings[(id)kCFStreamSSLPeerName] = (id)kCFNull;
+	settings[(id)kCFStreamSSLIsServer] = (id)kCFBooleanFalse;
+	settings[(id)kCFStreamSSLAllowsAnyRoot] = (id)kCFBooleanTrue;
+	settings[(id)kCFStreamSSLAllowsExpiredRoots] = (id)kCFBooleanTrue;
+	settings[(id)kCFStreamSSLAllowsExpiredCertificates] = (id)kCFBooleanTrue;
+	settings[(id)kCFStreamSSLValidatesCertificateChain] = (id)kCFBooleanFalse;
 
     CFReadStreamSetProperty(theReadStream, kCFStreamPropertySSLSettings, (__bridge CFTypeRef)(settings));
     CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertySSLSettings, (__bridge CFTypeRef)(settings));
@@ -173,7 +196,7 @@
 	CFDictionaryRef settings = SCDynamicStoreCopyProxies(NULL);
 
     // Check to see if there _is_ a system SOCKS proxy set.
-    if (CFDictionaryGetValueIfPresent(settings, CFItemRefToID(kCFStreamPropertySOCKSProxyHost), NULL)) {
+    if (CFDictionaryGetValueIfPresent(settings, (id)kCFStreamPropertySOCKSProxyHost, NULL)) {
         CFReadStreamSetProperty(theReadStream, kCFStreamPropertySOCKSProxy, settings);
         CFWriteStreamSetProperty(theWriteStream, kCFStreamPropertySOCKSProxy, settings);
     }
@@ -186,20 +209,20 @@
 	NSMutableDictionary *settings = [NSMutableDictionary dictionary];
 
 	if (version == 4) {
-		settings[CFItemRefToID(kCFStreamPropertySOCKSVersion)] = CFItemRefToID(kCFStreamSocketSOCKSVersion4);
+		settings[(id)kCFStreamPropertySOCKSVersion] = (id)kCFStreamSocketSOCKSVersion4;
 	} else {
-		settings[CFItemRefToID(kCFStreamPropertySOCKSVersion)] = CFItemRefToID(kCFStreamSocketSOCKSVersion5);
+		settings[(id)kCFStreamPropertySOCKSVersion] = (id)kCFStreamSocketSOCKSVersion5;
 	}
 
-	settings[CFItemRefToID(kCFStreamPropertySOCKSProxyHost)] = address;
-	settings[CFItemRefToID(kCFStreamPropertySOCKSProxyPort)] = @(port);
+	settings[(id)kCFStreamPropertySOCKSProxyHost] = address;
+	settings[(id)kCFStreamPropertySOCKSProxyPort] = @(port);
 
 	if (NSObjectIsNotEmpty(username)) {
-		settings[CFItemRefToID(kCFStreamPropertySOCKSUser)] = username;
+		settings[(id)kCFStreamPropertySOCKSUser] = username;
 	}
 	
 	if (NSObjectIsNotEmpty(password)) {
-		settings[CFItemRefToID(kCFStreamPropertySOCKSPassword)] = password;
+		settings[(id)kCFStreamPropertySOCKSPassword] = password;
 	}
 	
 	CFReadStreamSetProperty(theReadStream, kCFStreamPropertySOCKSProxy, (__bridge CFTypeRef)(settings));

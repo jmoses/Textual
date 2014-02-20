@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -67,6 +67,20 @@ static void setFlag(attr_t *attrBuf, attr_t flag, NSInteger start, NSInteger len
 	
 	while (target < end) {
 		*target |= flag;
+		++target;
+	}
+}
+
+static void removeFlag(attr_t *attrBuf, attr_t flag, NSInteger start, NSInteger len)
+{
+	attr_t *target = (attrBuf + start);
+	attr_t *end = (target + len);
+	
+	while (target < end) {
+		if (*target & flag) {
+			*target &= ~flag;
+		}
+		
 		++target;
 	}
 }
@@ -163,7 +177,17 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 	if (attrArray & _rendererURLAttribute)
 	{
 		templateTokens[@"anchorTitle"]		=  contentes;
-		templateTokens[@"anchorLocation"]	= [contentne stringWithValidURIScheme];
+	   //templateTokens[@"anchorLocation"]	= [contentne stringWithValidURIScheme];
+
+		/* Go over all ranges and associated URLs instead of asking 
+		 parser for same URL again and doing double the work. */
+		for (NSArray *rn in resultContext[@"allHyperlinksInBody"]) {
+			NSRange r = NSRangeFromString(rn[0]);
+
+			if (r.location == rangeStart) {
+				templateTokens[@"anchorLocation"] = rn[1];
+			}
+		}
 
 		/* Find unique ID (if any?). */
 		if (resultContext && [logController inlineImagesEnabledForView]) {
@@ -188,19 +212,51 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 	}
 	else
 	{
-		templateTokens[@"messageFragment"] = contentes;
-
-		// --- //
-
 		if (attrArray & _rendererConversationTrackerAttribute) {
-			IRCUser *user = [logController.channel findMember:contentes options:NSCaseInsensitiveSearch];
+			templateTokens[@"messageFragment"] = contentes;
 
-			if (PointerIsEmpty(user) == NO) {
-                if ([user.nickname isEqualIgnoringCase:logController.client.localNickname] == NO) {
-					templateTokens[@"inlineNicknameMatchFound"] = @(YES);
-					templateTokens[@"inlineNicknameColorNumber"] = @(user.colorNumber);
-                }
-            }
+			if ([TPCPreferences disableNicknameColorHashing] == YES) {
+				templateTokens[@"inlineNicknameMatchFound"] = @(NO);
+			} else {
+				IRCUser *user = [[logController channel] memberWithNickname:contentes];
+
+				if (PointerIsEmpty(user) == NO) {
+					if (NSObjectsAreEqual([user nickname], [[logController client] localNickname]) == NO)
+					{
+						NSString *modeSymbol = NSStringEmptyPlaceholder;
+						
+						if ([TPCPreferences conversationTrackingIncludesUserModeSymbol]) {
+							NSString *usermark = [user mark];
+							
+							if (rangeStart > 0) {
+								if (usermark) {
+									NSString *prevchar = [body stringCharacterAtIndex:(rangeStart - 1)];
+
+									if ([prevchar isEqualToString:usermark] == NO) {
+										modeSymbol = usermark;
+									}
+								}
+							} else {
+								modeSymbol = NSStringNilValueSubstitute(usermark);
+							}
+						}
+						
+						/* If nickname length = 1 and mode char is +, then we ignore it
+						 becasue someone with nick "m" becoming "+m" might be confused
+						 for a mode symbol. Same could apply to - too, but I do not know
+						 of any network that uses that for status symbol. */
+						if ([user.nickname length] == 1) {
+							if ([modeSymbol isEqualToString:@"+"]) {
+								modeSymbol = NSStringEmptyPlaceholder;
+							}
+						}
+						
+						templateTokens[@"inlineNicknameMatchFound"] = @(YES);
+						templateTokens[@"inlineNicknameColorNumber"] = @(user.colorNumber);
+						templateTokens[@"inlineNicknameUserModeSymbol"] = modeSymbol;
+					}
+				}
+			}
 		}
 
 		// --- //
@@ -238,7 +294,21 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 				templateTokens[@"fragmentBackgroundColorIsSet"] = @(YES);
 				templateTokens[@"fragmentBackgroundColor"] = @(colorCode);
 			}
+
+			/* Escape spaces that are prefix and suffix characters. */
+			if ([contentes hasPrefix:NSStringWhitespacePlaceholder]) {
+				contentes = [contentes stringByReplacingCharactersInRange:NSMakeRange(0, 1)
+															   withString:@"&nbsp;"];
+			}
+
+			if ([contentes hasSuffix:NSStringWhitespacePlaceholder]) {
+				contentes = [contentes stringByReplacingCharactersInRange:NSMakeRange(([contentes length] - 1), 1)
+															   withString:@"&nbsp;"];
+			}
 		}
+
+		/* Define content. */
+		templateTokens[@"messageFragment"] = contentes;
 
 		// --- //
 
@@ -262,7 +332,9 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 	BOOL exactWordMatching = ([TPCPreferences highlightMatchingMethod] == TXNicknameHighlightExactMatchType);
     BOOL regexWordMatching = ([TPCPreferences highlightMatchingMethod] == TXNicknameHighlightRegularExpressionMatchType);
 
-	IRCClientConfig *clientConfig = log.client.config;
+	TVCLogLineType lineType = [inputDictionary integerForKey:@"lineType"];
+	
+	IRCClientConfig *clientConfig = [log.client config];
 	
 	id highlightWords = [inputDictionary arrayForKey:@"highlightKeywords"];
 	id excludeWords = [inputDictionary arrayForKey:@"excludeKeywords"];
@@ -270,6 +342,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 	/* Only bother spending time creating a copy if we actually need them. */
 	if (clientConfig.highlightList.count >= 1) {
 		highlightWords = [highlightWords mutableCopy];
+
 		excludeWords = [excludeWords mutableCopy];
 	}
 
@@ -325,7 +398,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 							if ((i + 1) < length) {
 								c = source[(i + 1)];
 								
-								if (TXStringIsIRCColor(c, foregoundColor)) {
+								if (TXStringIsBase10Numeric(c)) {
 									++i;
 									
 									foregoundColor = (foregoundColor * 10 + c - '0');
@@ -348,7 +421,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 												if ((i + 1) < length) {
 													c = source[(i + 1)];
 													
-													if (TXStringIsIRCColor(c, backgroundColor)) {
+													if (TXStringIsBase10Numeric(c)) {
 														++i;
 														
 														backgroundColor = (backgroundColor * 10 + c - '0');
@@ -391,6 +464,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 					
 					continue;
 				}
+				case 0x1d:
 				case 0x16:
 				{
 					if (currentAttr & _rendererItalicFormatAttribute) {
@@ -433,6 +507,21 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 	 body into an attributed string. */
 
 	if (drawingType == TVCLogRendererHTMLType) {
+		/* Kill common Zalgo characters. */
+		if ([TPCPreferences automaticallyFilterUnicodeTextSpam]) {
+			if (lineType == TVCLogLineActionType			||
+				lineType == TVCLogLineCTCPType				||
+				lineType == TVCLogLineDCCFileTransferType	||
+				lineType == TVCLogLineNoticeType			||
+				lineType == TVCLogLinePrivateMessageType	||
+				lineType == TVCLogLineTopicType)
+			{
+				NSString *replacementCharacter = [NSString stringWithFormat:@"%C", 0xfffd];
+					
+				body = [TLORegularExpression string:body replacedByRegex:@"\\p{InCombining_Diacritical_Marks}" withString:replacementCharacter];
+			}
+		}
+			
 		/* Scan the body for links. */
 		if (renderLinks) {
 			NSMutableDictionary *urlAry = [NSMutableDictionary dictionary];
@@ -440,17 +529,17 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 			/* Do scan. */
 			NSArray *urlAryRanges = [TLOLinkParser locatedLinksForString:body];
 
-			for (NSString *rn in urlAryRanges) {
-				NSRange r = NSRangeFromString(rn);
+			for (NSArray *rn in urlAryRanges) {
+				NSRange r = NSRangeFromString(rn[0]);
 
 				if (r.length >= 1) {
 					setFlag(attrBuf, _rendererURLAttribute, r.location, r.length);
-
+					
+					removeFlag(attrBuf, _effectMask, r.location, r.length);
+					
 					if (isNormalMsg && (log && [log inlineImagesEnabledForView])) {
-						NSString *matchedURL;
-
-						matchedURL = [body safeSubstringWithRange:r];
-						matchedURL = [matchedURL stringWithValidURIScheme];
+						/* Get URL from returned array. */
+						NSString *matchedURL = rn[1];
 
 						/* We search for a key matching this string. */
 						NSString *keyMatch = [urlAry objectForKey:matchedURL];
@@ -466,16 +555,17 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 				}
 			}
 
+			resultInfo[@"allHyperlinksInBody"] = urlAryRanges;
 			resultInfo[@"InlineImageURLMatches"] = urlAry;
 		}
 
 		if (isPlainText) {
 			/* Add server/channel specific matches. */
-			for (TDCHighlightEntryMatchCondition *e in clientConfig.highlightList) {
+			for (TDCHighlightEntryMatchCondition *e in [clientConfig highlightList]) {
 				BOOL addKeyword = NO;
 
-				if (NSObjectIsNotEmpty(e.matchChannelID)) {
-					NSString *channelID = log.channel.config.itemUUID;
+				if (e.matchChannelID && [e.matchChannelID length] > 0) {
+					NSString *channelID = [log.channel.config itemUUID];
 
 					if ([e.matchChannelID isEqualToString:channelID]) {
 						addKeyword = YES;
@@ -521,7 +611,6 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 
 			if (regexWordMatching) {
 				/* Regular expression keyword matching. */
-				
 				for (NSString *keyword in highlightWords) {
 					NSRange matchRange = [TLORegularExpression string:body rangeOfRegex:keyword withoutCase:YES];
 					
@@ -541,11 +630,13 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 
 						/* Found a match. */
 						if (enabled) {
-							setFlag(attrBuf, _rendererKeywordHighlightAttribute, matchRange.location, matchRange.length);
-							
-							foundKeyword = YES;
-							
-							break;
+							if (isClear(attrBuf, _rendererURLAttribute, matchRange.location, matchRange.length)) {
+								setFlag(attrBuf, _rendererKeywordHighlightAttribute, matchRange.location, matchRange.length);
+								
+								foundKeyword = YES;
+								
+								break;
+							}
 						}
 					}
 				}
@@ -642,6 +733,26 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 				if (r.location == NSNotFound) {
 					break;
 				}
+				
+				NSInteger prev = (r.location - 1);
+				
+				if (0 <= prev && prev < length) {
+					UniChar c = [body characterAtIndex:prev];
+					
+					if (TXStringIsWordLetter(c)) {
+						break;
+					}
+				}
+				
+				NSInteger next = NSMaxRange(r);
+				
+				if (next < length) {
+					UniChar c = [body characterAtIndex:next];
+					
+					if (TXStringIsWordLetter(c)) {
+						break;
+					}
+				}
 
 				if (isClear(attrBuf, _rendererURLAttribute, r.location, r.length)) {
 					setFlag(attrBuf, _rendererChannelNameAttribute, r.location, r.length);
@@ -652,15 +763,15 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 
 			/* Conversation Tracking */
 			if (log && isNormalMsg) {
-				IRCClient *logClient = log.client;
-				IRCChannel *logChannel = log.channel;
+				IRCClient *logClient = [log client];
+				IRCChannel *logChannel = [log channel];
 
 				NSInteger totalNicknameLength = 0;
 				NSInteger totalNicknameCount = 0;
 
 				NSMutableSet *mentionedUsers = [NSMutableSet set];
 
-				NSArray *sortedMembers = logChannel.memberListLengthSorted;
+				NSArray *sortedMembers = [logChannel sortedByNicknameLengthMemberList];
 
 				for (IRCUser *user in sortedMembers) {
 					start = 0;
@@ -714,9 +825,9 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 							{
 								/* Check if the nickname conversation tracking found is matched to an ignore
 								 that is set to hide them. */
-								IRCAddressBook *ignoreCheck = [logClient checkIgnoreAgainstHostmask:user.hostmask withMatches:@[@"hideMessagesContainingMatch"]];
+								IRCAddressBook *ignoreCheck = [logClient checkIgnoreAgainstHostmask:[user hostmask] withMatches:@[@"hideMessagesContainingMatch"]];
 
-								if (PointerIsNotEmpty(ignoreCheck) && ignoreCheck.hideMessagesContainingMatch) {
+								if (PointerIsNotEmpty(ignoreCheck) && [ignoreCheck hideMessagesContainingMatch]) {
 									if (outputDictionary) {
 										*outputDictionary = @{@"containsIgnoredNickname" : @(YES)};
 									}
@@ -728,7 +839,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 								setFlag(attrBuf, _rendererConversationTrackerAttribute, r.location, r.length);
 
 								totalNicknameCount += 1;
-								totalNicknameLength += user.nickname.length;
+								totalNicknameLength += [user.nickname length];
 
 								[mentionedUsers addObject:user];
 							}
@@ -738,7 +849,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 					}
 				}
 
-				if (NSObjectIsNotEmpty(mentionedUsers)) {
+				if ([mentionedUsers count] > 0) {
 					/* Calculate how much of the body length is actually nicknames. 
 					 This is used when trying to stop highlight spam messages.
 					 By design, Textual counts anything above 75% spam. It
@@ -773,8 +884,6 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 	}
 	
 	start = 0;
-
-	NSInteger totalNicknameLength = 0;
 	
 	while (start < length) {
 		NSInteger n = getNextAttributeRange(attrBuf, start, length);
@@ -787,13 +896,6 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 			result = [TVCLogRenderer renderAttributedRange:result attributes:t start:start length:n baseFont:attributedStringFont];
 		} else {
 			NSString *renderedRange = [TVCLogRenderer renderRange:body attributes:t start:start length:n for:log context:resultInfo];
-
-			if (t & _rendererConversationTrackerAttribute) {
-				/* To fight against highlight spam we count the total length of every
-				 nickname that appears in this message to calculate a percentage later. */
-
-				totalNicknameLength += renderedRange.length;
-			}
 
 			if (renderedRange.length > 0) {
 				[result appendString:renderedRange];
@@ -826,9 +928,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 
 + (NSString *)renderTemplate:(NSString *)templateName attributes:(NSDictionary *)templateTokens
 {
-	TXMasterController *master = [TVCLogRenderer masterController];
-
-	GRMustacheTemplate *tmpl = [master.themeController.customSettings templateWithName:templateName];
+	GRMustacheTemplate *tmpl = [self.themeController.customSettings templateWithName:templateName];
 
 	PointerIsEmptyAssertReturn(tmpl, nil);
 
@@ -843,7 +943,7 @@ static NSInteger getNextAttributeRange(attr_t *attrBuf, NSInteger start, NSInteg
 {
 	s = [s gtm_stringByEscapingForHTML];
 
-	s = [s stringByReplacingOccurrencesOfString:@"	" withString:@"&nbsp;&nbsp;&nbsp;&nbsp;"];
+	s = [s stringByReplacingOccurrencesOfString:@"\t" withString:@"&nbsp;&nbsp;&nbsp;&nbsp;"];
 	s = [s stringByReplacingOccurrencesOfString:@"  " withString:@"&nbsp;&nbsp;"];
 
 	return s;

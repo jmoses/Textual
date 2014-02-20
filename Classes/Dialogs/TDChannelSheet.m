@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDChannelSheet" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDChannelSheet" owner:self topLevelObjects:nil];
 	}
 
 	return self;
@@ -71,9 +71,9 @@
 - (void)makeFirstResponderForRow:(NSInteger)row
 {
 	switch (row) {
-		case 0:	{	[self.window makeFirstResponder:self.channelNameField]; break;		}
-		case 1: {	[self.window makeFirstResponder:self.encryptionKeyField]; break;	}
-        case 2: {	[self.window makeFirstResponder:self.defaultTopicField]; break;		}
+		case 0:	{	[self.sheet makeFirstResponder:self.channelNameField]; break;		}
+		case 1: {	[self.sheet makeFirstResponder:self.encryptionKeyField]; break;	}
+        case 2: {	[self.sheet makeFirstResponder:self.defaultTopicField]; break;		}
 		default: { break; }
 	}
 }
@@ -111,7 +111,7 @@
 	[self firstPane:self.generalView];
 
 	if (self.newItem) {
-		//[self.window makeFirstResponder:self.channelNameField];
+		[self.sheet makeFirstResponder:self.channelNameField];
 	}
 	
 	[self.contentViewTabView setSelectedSegment:0];
@@ -122,9 +122,15 @@
 	self.channelNameField.stringValue		= self.config.channelName;
 	self.defaultModesField.stringValue		= self.config.defaultModes;
 	self.defaultTopicField.stringValue		= self.config.defaultTopic;
-	self.encryptionKeyField.stringValue		= self.config.encryptionKey;
-	self.secretKeyField.stringValue			= self.config.secretKey;
-	
+
+	if (self.config.encryptionKeyIsSet) {
+		self.encryptionKeyField.stringValue	= [self.config encryptionKeyValue];
+	}
+
+	if (self.config.secretKeyIsSet) {
+		self.secretKeyField.stringValue	= [self.config secretKeyValue];
+	}
+
 	self.autoJoinCheck.state			= self.config.autoJoin;
 	self.ignoreHighlightsCheck.state	= self.config.ignoreHighlights;
 	self.pushNotificationsCheck.state	= self.config.pushNotifications;

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -100,8 +100,8 @@ static NSInteger _cachedHighlightCount = -1;
 		highlightCount = 9999;
 	}
 	
-	BOOL showRedBadge = (messageCount >= 1);
-	BOOL showGreenBadge = (highlightCount >= 1);
+	BOOL showRedBadge = (highlightCount >= 1);
+	BOOL showGreenBadge = (messageCount >= 1);
 	
 	/* ////////////////////////////////////////////////////////// */
 	/* Define Text Drawing Globals. */
@@ -146,7 +146,7 @@ static NSInteger _cachedHighlightCount = -1;
 	redBadgeLeftFrame.size.height	= 44;
 	
 	redBadgeLeftFrame.size.width    = 21;
-	redBadgeCenterFrame.size.width	= [self badgeCenterTileWidth:messageCount];
+	redBadgeCenterFrame.size.width	= [self badgeCenterTileWidth:highlightCount];
 	redBadgeRightFrame.size.width	= 20;
 	
 	/* Green Badge Size. */
@@ -155,7 +155,7 @@ static NSInteger _cachedHighlightCount = -1;
 	greenBadgeLeftFrame.size.height		= 44;
 	
 	greenBadgeLeftFrame.size.width		= 21;
-	greenBadgeCenterFrame.size.width	= [self badgeCenterTileWidth:highlightCount];
+	greenBadgeCenterFrame.size.width	= [self badgeCenterTileWidth:messageCount];
 	greenBadgeRightFrame.size.width		= 20;
 	
 	/* ////////////////////////////////////////////////////////// */
@@ -218,7 +218,7 @@ static NSInteger _cachedHighlightCount = -1;
 		[redBadgeRight	drawInRect:redBadgeRightFrame	fromRect:NSZeroRect operation:NSCompositeSourceOver fraction:1.0];
 		
 		/* Red Badge Text. */
-		badgeText		= [badgeText initWithString:[NSString stringWithInteger:messageCount] attributes:badgeTextAttrs];
+		badgeText		= [badgeText initWithString:[NSString stringWithInteger:highlightCount] attributes:badgeTextAttrs];
 		badgeTextSize   = [badgeText size];
 		
 		NSInteger redBadgeTotalWidth = (redBadgeLeftFrame.size.width +
@@ -242,9 +242,9 @@ static NSInteger _cachedHighlightCount = -1;
 		
 		/* Green Badge Text. */
 		if (showRedBadge) {
-			[badgeText replaceCharactersInRange:NSMakeRange(0, badgeText.length) withString:[NSString stringWithInteger:highlightCount]];
+			[badgeText replaceCharactersInRange:NSMakeRange(0, badgeText.length) withString:[NSString stringWithInteger:messageCount]];
 		} else {
-			badgeText = [badgeText initWithString:[NSString stringWithInteger:highlightCount] attributes:badgeTextAttrs];
+			badgeText = [badgeText initWithString:[NSString stringWithInteger:messageCount] attributes:badgeTextAttrs];
 		}
 		
 		badgeTextSize = [badgeText size];

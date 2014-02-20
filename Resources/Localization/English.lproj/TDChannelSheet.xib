@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="4510" systemVersion="13A569" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="4514" systemVersion="13B42" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
         <deployment version="1070" defaultVersion="1070" identifier="macosx"/>
         <development version="5000" identifier="xcode"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="4510"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="4514"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="TDChannelSheet">
@@ -32,7 +32,7 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application"/>
-        <window title="Channel Properties" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" wantsToBeColor="NO" visibleAtLaunch="NO" animationBehavior="default" id="5" userLabel="Window">
+        <window title="Channel Properties" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" releasedWhenClosed="NO" wantsToBeColor="NO" visibleAtLaunch="NO" animationBehavior="default" id="5" userLabel="Window">
             <windowStyleMask key="styleMask" titled="YES" closable="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="780" y="583" width="325" height="426"/>
@@ -68,11 +68,11 @@
             </connections>
         </window>
         <view id="109" userLabel="View">
-            <rect key="frame" x="0.0" y="0.0" width="325" height="358"/>
+            <rect key="frame" x="0.0" y="0.0" width="325" height="356"/>
             <autoresizingMask key="autoresizingMask"/>
             <subviews>
                 <textField verticalHuggingPriority="750" id="119">
-                    <rect key="frame" x="23" y="310" width="65" height="17"/>
+                    <rect key="frame" x="23" y="308" width="65" height="17"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Channel:" id="134">
                         <font key="font" metaFont="system"/>
@@ -81,7 +81,7 @@
                     </textFieldCell>
                 </textField>
                 <textField verticalHuggingPriority="750" id="118">
-                    <rect key="frame" x="17" y="282" width="71" height="17"/>
+                    <rect key="frame" x="17" y="280" width="71" height="17"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Password:" id="135">
                         <font key="font" metaFont="system"/>
@@ -90,7 +90,7 @@
                     </textFieldCell>
                 </textField>
                 <textField verticalHuggingPriority="750" id="124" customClass="NSSecureTextField">
-                    <rect key="frame" x="93" y="277" width="164" height="22"/>
+                    <rect key="frame" x="93" y="275" width="164" height="22"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="129">
                         <font key="font" metaFont="system"/>
@@ -99,7 +99,7 @@
                     </textFieldCell>
                 </textField>
                 <button id="122">
-                    <rect key="frame" x="24" y="216" width="195" height="18"/>
+                    <rect key="frame" x="23" y="216" width="195" height="18"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <buttonCell key="cell" type="check" title="Join on connect." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="131">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -107,7 +107,7 @@
                     </buttonCell>
                 </button>
                 <button verticalHuggingPriority="750" id="126">
-                    <rect key="frame" x="226" y="12" width="82" height="32"/>
+                    <rect key="frame" x="226" y="13" width="82" height="32"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <buttonCell key="cell" type="push" title="Save" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="127">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -121,7 +121,7 @@ DQ
                     </connections>
                 </button>
                 <button verticalHuggingPriority="750" id="125">
-                    <rect key="frame" x="147" y="12" width="82" height="32"/>
+                    <rect key="frame" x="147" y="13" width="82" height="32"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="128">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -132,7 +132,7 @@ DQ
                     </connections>
                 </button>
                 <textField verticalHuggingPriority="750" id="123">
-                    <rect key="frame" x="93" y="307" width="209" height="22"/>
+                    <rect key="frame" x="93" y="305" width="209" height="22"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="#example" drawsBackground="YES" id="130">
                         <font key="font" metaFont="system"/>
@@ -144,14 +144,14 @@ DQ
                     </connections>
                 </textField>
                 <box verticalHuggingPriority="750" title="Box" boxType="separator" titlePosition="noTitle" id="120">
-                    <rect key="frame" x="12" y="58" width="301" height="5"/>
+                    <rect key="frame" x="12" y="59" width="301" height="5"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
                     <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                     <font key="titleFont" metaFont="system"/>
                 </box>
                 <button id="112">
-                    <rect key="frame" x="24" y="189" width="235" height="18"/>
+                    <rect key="frame" x="23" y="189" width="235" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Post notifications for channel." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="141">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -159,7 +159,7 @@ DQ
                     </buttonCell>
                 </button>
                 <textField verticalHuggingPriority="750" id="117">
-                    <rect key="frame" x="39" y="272" width="49" height="11"/>
+                    <rect key="frame" x="39" y="270" width="49" height="11"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="(optional)" id="136">
                         <font key="font" metaFont="miniSystem"/>
@@ -168,7 +168,7 @@ DQ
                     </textFieldCell>
                 </textField>
                 <button id="111">
-                    <rect key="frame" x="24" y="108" width="168" height="18"/>
+                    <rect key="frame" x="23" y="108" width="168" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Disable highlights." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="142">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -176,7 +176,7 @@ DQ
                     </buttonCell>
                 </button>
                 <button id="279">
-                    <rect key="frame" x="24" y="135" width="168" height="18"/>
+                    <rect key="frame" x="23" y="135" width="168" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Disable inline images." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="280">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -191,7 +191,7 @@ DQ
                     </connections>
                 </button>
                 <button id="HBZ-KH-HBg">
-                    <rect key="frame" x="24" y="135" width="168" height="18"/>
+                    <rect key="frame" x="23" y="135" width="168" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Show inline images." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="K3N-Px-fl5">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -202,9 +202,9 @@ DQ
                     </connections>
                 </button>
                 <button id="281">
-                    <rect key="frame" x="24" y="81" width="243" height="18"/>
+                    <rect key="frame" x="23" y="81" width="226" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="check" title="Disable join, part, and quit activity." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="282">
+                    <buttonCell key="cell" type="check" title="Disable general event messages." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="282">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                         <font key="font" metaFont="system"/>
                         <connections>
@@ -220,14 +220,14 @@ DQ
                     </connections>
                 </button>
                 <box verticalHuggingPriority="750" title="Box" boxType="separator" titlePosition="noTitle" id="312">
-                    <rect key="frame" x="12" y="252" width="301" height="5"/>
+                    <rect key="frame" x="12" y="250" width="301" height="5"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
                     <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                     <font key="titleFont" metaFont="system"/>
                 </box>
                 <button id="356">
-                    <rect key="frame" x="24" y="162" width="267" height="18"/>
+                    <rect key="frame" x="23" y="162" width="267" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Show unread count in channel list." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="357">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -321,11 +321,11 @@ DQ
             </subviews>
         </view>
         <view id="147">
-            <rect key="frame" x="0.0" y="0.0" width="325" height="198"/>
+            <rect key="frame" x="0.0" y="0.0" width="343" height="330"/>
             <autoresizingMask key="autoresizingMask"/>
             <subviews>
                 <textField verticalHuggingPriority="750" id="155">
-                    <rect key="frame" x="17" y="150" width="80" height="17"/>
+                    <rect key="frame" x="23" y="275" width="80" height="17"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Passphrase:" id="174">
                         <font key="font" metaFont="system"/>
@@ -334,7 +334,7 @@ DQ
                     </textFieldCell>
                 </textField>
                 <button verticalHuggingPriority="750" id="148">
-                    <rect key="frame" x="229" y="12" width="82" height="32"/>
+                    <rect key="frame" x="245" y="13" width="82" height="32"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <buttonCell key="cell" type="push" title="Save" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="181">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -348,7 +348,7 @@ DQ
                     </connections>
                 </button>
                 <button verticalHuggingPriority="750" id="149">
-                    <rect key="frame" x="147" y="12" width="82" height="32"/>
+                    <rect key="frame" x="158" y="13" width="82" height="32"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" inset="2" id="180">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -359,7 +359,7 @@ DQ
                     </connections>
                 </button>
                 <textField verticalHuggingPriority="750" id="151" customClass="NSSecureTextField">
-                    <rect key="frame" x="102" y="147" width="203" height="22"/>
+                    <rect key="frame" x="108" y="272" width="210" height="22"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="178">
                         <font key="font" metaFont="system"/>
@@ -367,23 +367,130 @@ DQ
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <textField verticalHuggingPriority="750" id="153">
-                    <rect key="frame" x="99" y="78" width="208" height="56"/>
-                    <autoresizingMask key="autoresizingMask"/>
-                    <textFieldCell key="cell" selectable="YES" sendsActionOnEndEditing="YES" id="176">
-                        <font key="font" metaFont="smallSystem"/>
-                        <string key="title">This passphrase will be used to encrypt and decrypt messages so that only those with it may be able to read the transmitted conversations.</string>
-                        <color key="textColor" name="controlShadowColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
                 <box verticalHuggingPriority="750" title="Box" boxType="separator" titlePosition="noTitle" id="154">
-                    <rect key="frame" x="12" y="58" width="301" height="5"/>
+                    <rect key="frame" x="21" y="59" width="301" height="5"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <color key="borderColor" white="0.0" alpha="0.41999999999999998" colorSpace="calibratedWhite"/>
                     <color key="fillColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                     <font key="titleFont" metaFont="system"/>
                 </box>
+                <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" id="oky-HV-Bq9">
+                    <rect key="frame" x="36" y="77" width="274" height="182"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <clipView key="contentView" drawsBackground="NO" copiesOnScroll="NO" id="JFM-YA-v04">
+                        <rect key="frame" x="0.0" y="0.0" width="274" height="182"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <textView editable="NO" drawsBackground="NO" importsGraphics="NO" baseWritingDirection="leftToRight" findStyle="panel" continuousSpellChecking="YES" verticallyResizable="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="5eM-Ks-gx0">
+                                <rect key="frame" x="0.0" y="0.0" width="274" height="182"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <color key="textColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                <size key="minSize" width="274" height="182"/>
+                                <size key="maxSize" width="463" height="10000000"/>
+                                <attributedString key="textStorage">
+                                    <fragment>
+                                        <string key="content">This passphrase will be used to encrypt and decrypt messages so that only those with it may be able to read the transmitted conversations.
+
+When enabled, Textual will refuse to write any </string>
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                    <fragment content="cache files">
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <url key="NSLink" string="http://en.wikipedia.org/wiki/Cache_(computing)"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <integer key="NSUnderline" value="1"/>
+                                            <color key="NSUnderlineColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                    <fragment>
+                                        <string key="content"> to disk related to this channel. These files do not include log files written to the log location. Those are still produced.
+
+</string>
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                    <fragment content="Blowfish ECB">
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <url key="NSLink" string="http://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_.28ECB.29"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <integer key="NSUnderline" value="1"/>
+                                            <color key="NSUnderlineColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                    <fragment content=" is used by default for encryption. While safe, this algorithm may not be secure enough for all purposes. See the ">
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                    <fragment content="Encrypted Chat">
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <url key="NSLink" string="http://www.codeux.com/textual/wiki/Encrypted-Chat.wiki"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <integer key="NSUnderline" value="1"/>
+                                            <color key="NSUnderlineColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                    <fragment content=" wiki page for more information.">
+                                        <attributes>
+                                            <real key="NSBaselineOffset" value="1"/>
+                                            <color key="NSColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                            <font key="NSFont" size="11" name="LucidaGrande"/>
+                                            <real key="NSKern" value="0.0"/>
+                                            <paragraphStyle key="NSParagraphStyle" alignment="center" lineBreakMode="wordWrapping" baseWritingDirection="leftToRight" defaultTabInterval="36"/>
+                                            <color key="NSStrokeColor" red="0.42352941176470588" green="0.42352941176470588" blue="0.42352941176470588" alpha="1" colorSpace="calibratedRGB"/>
+                                        </attributes>
+                                    </fragment>
+                                </attributedString>
+                                <color key="insertionPointColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                                <size key="minSize" width="274" height="182"/>
+                                <size key="maxSize" width="463" height="10000000"/>
+                            </textView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="YES" id="wGf-dV-4Yz">
+                        <rect key="frame" x="-100" y="-100" width="87" height="18"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="Qqf-Rt-UYK">
+                        <rect key="frame" x="-100" y="-100" width="16" height="133"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
             </subviews>
         </view>
         <userDefaultsController id="318"/>

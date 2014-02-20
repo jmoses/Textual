@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -124,13 +124,9 @@
 - (NSInteger)colorNumber
 {
 	if (_colorNumber < 0) {
-		NSString *hashName = self.nickname.lowercaseString;
+		NSString *hashName = [self.nickname.lowercaseString sha1];
 
-		if ([RZUserDefaults() boolForKey:@"UUIDBasedNicknameColorHashing"]) {
-			hashName = [NSString stringWithUUID];
-		}
-		
-		self.colorNumber = (hashName.hash % _colorNumberMax);
+		self.colorNumber = ([hashName hash] % _colorNumberMax);
 	}
 	
 	return _colorNumber;
@@ -145,7 +141,12 @@
 
 - (NSUInteger)hash
 {
-	return self.nickname.lowercaseString.hash;
+	return [[self.nickname lowercaseString] hash];
+}
+
+- (NSString *)lowercaseNickname
+{
+	return [self.nickname lowercaseString];
 }
 
 - (CGFloat)totalWeight
@@ -197,8 +198,8 @@
 
 - (NSComparisonResult)compareUsingWeights:(IRCUser *)other
 {
-	CGFloat local = self.totalWeight;
-	CGFloat remte = other.totalWeight;
+	CGFloat local = [self totalWeight];
+	CGFloat remte = [other totalWeight];
 
 	if (local > remte) {
 		return NSOrderedAscending;
@@ -233,7 +234,10 @@
 
 	BOOL favorIRCop = [TPCPreferences memberListSortFavorsServerStaff];
 
-	NSComparisonResult rank = NSInvertedComparisonResult([@(self.channelRank) compare:@(other.channelRank)]);
+	id objc1 = @([self channelRank]);
+	id objc2 = @([other channelRank]);
+	
+	NSComparisonResult rank = NSInvertedComparisonResult([objc1 compare:objc2]);
 
 	if (favorIRCop && self.isCop && BOOLReverseValue(other.isCop)) {
 		return NSOrderedAscending;
@@ -271,7 +275,7 @@
 		IRCUser *s1 = obj1;
 		IRCUser *s2 = obj2;
 
-		return (s1.nickname.length <= s2.nickname.length);
+		return ([s1.nickname length] <= [s2.nickname length]);
 	} copy];
 }
 

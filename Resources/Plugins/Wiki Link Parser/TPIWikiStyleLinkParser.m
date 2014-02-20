@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.pdf and Acknowledgements.pdf
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -40,15 +40,15 @@
 #define _linkMatchRegex             @"\\[\\[([^\\]]+)\\]\\]"
 
 @interface TPIWikiStyleLinkParser ()
-@property (nonatomic, weak) NSView *preferencePane;
-@property (nonatomic, unsafe_unretained) NSWindow *rnewConditionWindow;
-@property (nonatomic, weak) NSTextField *rnewConditionLinkPrefixField;
-@property (nonatomic, weak) NSPopUpButton *rnewConditionChannelPopup;
-@property (nonatomic, weak) NSButton *rnewConditionSaveButton;
-@property (nonatomic, weak) NSButton *rnewConditionCancelButton;
-@property (nonatomic, weak) NSButton *addConditionButton;
-@property (nonatomic, weak) NSButton *removeConditionButton;
-@property (nonatomic, weak) NSTableView *linkPrefixesTable;
+@property (nonatomic, strong) IBOutlet NSView *preferencePane;
+@property (nonatomic, strong) IBOutlet NSWindow *rnewConditionWindow;
+@property (nonatomic, weak) IBOutlet NSTextField *rnewConditionLinkPrefixField;
+@property (nonatomic, weak) IBOutlet NSPopUpButton *rnewConditionChannelPopup;
+@property (nonatomic, weak) IBOutlet NSButton *rnewConditionSaveButton;
+@property (nonatomic, weak) IBOutlet NSButton *rnewConditionCancelButton;
+@property (nonatomic, weak) IBOutlet NSButton *addConditionButton;
+@property (nonatomic, weak) IBOutlet NSButton *removeConditionButton;
+@property (nonatomic, weak) IBOutlet NSTableView *linkPrefixesTable;
 @property (nonatomic, strong) NSMutableDictionary *rnewConditionChannelMatrix;
 
 - (void)addCondition:(id)sender;
@@ -67,7 +67,7 @@
 
 - (void)pluginLoadedIntoMemory:(IRCWorld *)world
 {
-    [NSBundle loadNibNamed:@"TPIWikiStyleLinkParser" owner:self];
+	[TPIBundleFromClass() loadCustomNibNamed:@"TPIWikiStyleLinkParser" owner:self topLevelObjects:nil];
 	
 	[self updateRemoveConditionButton];
 }

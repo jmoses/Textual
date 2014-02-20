@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDCListDialog" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCListDialog" owner:self topLevelObjects:nil];
 
 		self.unfilteredList = [NSMutableArray new];
 
@@ -77,6 +77,12 @@
 - (void)close
 {
 	[self.window close];
+}
+
+- (void)releaseTableViewDataSourceBeforeClosure
+{
+	self.channelListTable.delegate = nil;
+	self.channelListTable.dataSource = nil;
 }
 
 - (void)clear
@@ -347,6 +353,8 @@ static NSInteger compareItems(NSArray *self, NSArray *other, void *context)
 
 - (void)windowWillClose:(NSNotification *)note
 {
+	[self releaseTableViewDataSourceBeforeClosure];
+
 	[self.window saveWindowStateForClass:self.class];
 	
 	if ([self.delegate respondsToSelector:@selector(listDialogWillClose:)]) {

@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -39,7 +39,12 @@
 	#import <Cocoa/Cocoa.h>
 	#import <WebKit/WebKit.h>
 	#import <Security/Security.h>
+	#import <CoreData/CoreData.h>
 	#import <SystemConfiguration/SystemConfiguration.h>
+
+	#import <SecurityInterface/SFCertificatePanel.h>
+	#import <SecurityInterface/SFCertificateTrustPanel.h>
+	#import <SecurityInterface/SFChooseIdentityPanel.h>
 
 	#import <BlowfishEncryption/BlowfishEncryption.h>
 	#import <SystemInformation/SystemInformation.h>
@@ -65,8 +70,13 @@
 	@class IRCTreeItem;
 	@class IRCUser;
 	@class IRCWorld;
+	@class NSMenuExtendedHelperItem;
 	@class TDCAboutPanel;
 	@class TDCAddressBookSheet;
+	@class TDCFileTransferDialog;
+	@class TDCFileTransferDialogRemoteAddress;
+	@class TDCFileTransferDialogTableCell;
+	@class TDCFileTransferDialogTransferController;
 	@class TDCHighlightEntryMatchCondition;
 	@class TDCHighlightEntrySheet;
 	@class TDCHighlightListSheet;
@@ -77,6 +87,7 @@
 	@class TDCPreferencesController;
 	@class TDCPreferencesScriptWrapper;
 	@class TDCPreferencesSoundWrapper;
+	@class TDCProgressInformationSheet;
 	@class TDCServerSheet;
 	@class TDCSheetBase;
 	@class TDCTopicSheet;
@@ -103,6 +114,7 @@
 	@class TLOTimerCommand;
 	@class TLOpenLink;
 	@class TPCPreferences;
+	@class TPCPreferencesCloudSync;
 	@class TPCPreferencesImportExport;
 	@class TPCResourceManager;
 	@class TPCThemeController;
@@ -111,8 +123,6 @@
 	@class TVCImageURLParser;
 	@class TVCImageURLoader;
 	@class TVCInputPromptDialog;
-	@class TVCInputTextField;
-	@class TVCInputTextFieldBackground;
 	@class TVCListSeparatorCell;
 	@class TVCListView;
 	@class TVCLogController;
@@ -127,6 +137,8 @@
 	@class TVCMainWindowLoadingScreenView;
 	@class TVCMainWindowSegmentedCell;
 	@class TVCMainWindowSegmentedControl;
+	@class TVCMainWindowTextView;
+	@class TVCMainWindowTextViewBackground;
 	@class TVCMemberList;
 	@class TVCMemberListCell;
 	@class TVCMemberListCellBadge;
@@ -137,14 +149,15 @@
 	@class TVCServerListCellBadge;
 	@class TVCServerListCellChildItem;
 	@class TVCServerListCellGroupItem;
-	@class TVCTextField;
+	@class TVCServerListRowCell;
+	@class TVCTextFieldWithValueValidation;
+	@class TVCTextFieldWithValueValidationCell;
 	@class TVCTextFormatterMenu;
+	@class TVCTextViewWithIRCFormatter;
 	@class TVCThinSplitView;
 	@class TVCWebViewAutoScroll;
-	@class TVCServerListRowCell;
 	@class TXMasterController;
 	@class TXMenuController;
-	@class TXSpecialNSMenuItemHelper;
 
 	/* 3rd Party Extensions. */
 
@@ -198,11 +211,13 @@
 	/* Framework Extensions (Helpers). */
 
 	#import "NSArrayHelper.h"
+	#import "NSBundleHelper.h"
 	#import "NSByteCountFormatterHelper.h"
 	#import "NSColorHelper.h"
 	#import "NSDataHelper.h"
 	#import "NSDateHelper.h"
 	#import "NSDictionaryHelper.h"
+	#import "NSFileManagerHelper.h"
 	#import "NSFontHelper.h"
 	#import "NSImageHelper.h"
 	#import "NSMenuHelper.h"
@@ -223,6 +238,10 @@
 	#import "TDCSheetBase.h"
 	#import "TDCAboutPanel.h"
 	#import "TDCAddressBookSheet.h"
+	#import "TDCFileTransferDialog.h"
+	#import "TDCFileTransferDialogTableCell.h"
+	#import "TDCFileTransferDialogTransferController.h"
+	#import "TDCFileTransferDialogRemoteAddress.h"
 	#import "TDCHighlightEntrySheet.h"
 	#import "TDCHighlightListSheet.h"
 	#import "TDCInviteSheet.h"
@@ -267,6 +286,7 @@
 	/* Preferences. */
 
 	#import "TPCPreferences.h"
+	#import "TPCPreferencesCloudSync.h"
 	#import "TPCPreferencesImportExport.h"
 	#import "TPCResourceManager.h"
 	#import "TPCThemeController.h"
@@ -278,7 +298,7 @@
 	#import "TVCImageURLParser.h"
 	#import "TVCImageURLoader.h"
 	#import "TVCInputPromptDialog.h"
-	#import "TVCInputTextField.h"
+	#import "TVCMainWindowTextView.h"
 	#import "TVCListSeparatorCell.h"
 	#import "TVCListView.h"
 	#import "TVCLogController.h"
@@ -292,6 +312,7 @@
 	#import "TVCMainWindow.h"
 	#import "TVCMainWindowLoadingScreen.h"
 	#import "TVCMainWindowSegmentedControl.h"
+	#import "TDCProgressInformationSheet.h"
 	#import "TVCMemberList.h"
 	#import "TVCMemberListCell.h"
 	#import "TVCMemberListCellBadge.h"
@@ -299,7 +320,8 @@
 	#import "TVCServerList.h"
 	#import "TVCServerListCell.h"
 	#import "TVCServerListCellBadge.h"
-	#import "TVCTextField.h"
+	#import "TVCTextFieldWithValueValidation.h"
+	#import "TVCTextViewWithIRCFormatter.h"
 	#import "TVCTextFormatterMenu.h"
 	#import "TVCThinSplitView.h"
 	#import "TVCWebViewAutoScroll.h"

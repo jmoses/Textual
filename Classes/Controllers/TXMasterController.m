@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -61,6 +61,14 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 
 			LogToConsole(@"Launching in debug mode.");
 		}
+		
+#ifdef TEXTUAL_BUILT_WITH_APP_NAP_DISABLED
+		// Force disable app nap as it creates a lot of problems.
+		
+		if ([RZProcessInfo() respondsToSelector:@selector(beginActivityWithOptions:reason:)]) {
+			self.appNapProgressInformation = [RZProcessInfo() beginActivityWithOptions:NSActivityUserInitiatedAllowingIdleSystemSleep reason:@"Managing IRC"];
+		}
+#endif
 
 		// ---- //
 
@@ -89,11 +97,19 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 #endif
 
 	[TPCPreferences initPreferences];
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	self.cloudSyncManager = [TPCPreferencesCloudSync new];
+	
+	/* Cloud files are synced regardless of user preference
+	 so we still have to initalize it at some point. */
+	if ([TPCPreferences featureAvailableToOSXMountainLion]) {
+		[self.cloudSyncManager initializeCloudSyncSession];
+	}
+#endif
 
-	[self.mainWindow setMinSize:TPCPreferences.minimumWindowSize];
-
-	[self loadWindowState:YES];
-
+	[self.mainWindow setMinSize:[TPCPreferences minimumWindowSize]];
+	[self.mainWindow setAllowsConcurrentViewDrawing:NO];
 	[self.mainWindow makeMainWindow];
 
 	self.serverSplitView.fixedViewIndex = 0;
@@ -104,14 +120,22 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 
 	self.mainWindowIsActive = YES;
 
-	/* We keep high-res mode value cached since it is costly to ask for every draw. */
-	self.applicationIsRunningInHighResMode = [RZMainScreen() runningInHighResolutionMode];
-	
 	[self.mainWindow makeKeyAndOrderFront:nil];
+
+	[self loadWindowState];
+
 	[self.mainWindow setAlphaValue:[TPCPreferences themeTransparency]];
 	
-	self.themeController = [TPCThemeController new];
-	[self.themeController load];
+	/* We keep high-res mode value cached since it is costly to ask for every draw. */
+	self.applicationIsRunningInHighResMode = [[self.mainWindow screen] runningInHighResolutionMode];
+
+	/* Call to initialize. */
+	(void)TVCLogControllerHistoricLogSharedInstance();
+
+	 self.themeControllerPntr = [TPCThemeController new];
+	[self.themeControllerPntr load];
+	
+	[self.menuController setupOtherServices];
 
 	[self.inputTextField focus];
 	[self.inputTextField redrawOriginPoints];
@@ -134,6 +158,7 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 
 	self.serverList.delegate = self.worldController;
 	self.serverList.dataSource = self.worldController;
+
     self.memberList.keyDelegate	= self.worldController;
 	self.serverList.keyDelegate	= self.worldController;
 
@@ -148,7 +173,7 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 	[self.memberList setDoubleAction:@selector(memberListDoubleClicked:)];
 
 	if ([TPCPreferences inputHistoryIsChannelSpecific] == NO) {
-		self.inputHistory = [TLOInputHistory new];
+		_globalInputHistory = [TLOInputHistory new];
 	}
 
 	self.growlController = [TLOGrowlController new];
@@ -163,10 +188,23 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 
 	[RZAppleEventManager() setEventHandler:self andSelector:@selector(handleURLEvent:withReplyEvent:) forEventClass:KInternetEventClass andEventID:KAEGetURL];
 
-	self.pluginManager = [THOPluginManager new];
-	[self.pluginManager loadPlugins];
+	[THOPluginManagerSharedInstance() loadPlugins];
+}
 
-	[TPCResourceManager copyResourcesToCustomAddonsFolder];
+- (void)maybeToggleFullscreenAfterLaunch
+{
+	NSDictionary *dic = [RZUserDefaults() dictionaryForKey:@"Window -> Main Window Window State"];
+
+	if ([dic boolForKey:@"fullscreen"]) {
+		[self performSelector:@selector(toggleFullscreenAfterLaunch) withObject:nil afterDelay:1.0];
+	}
+}
+
+- (void)toggleFullscreenAfterLaunch
+{
+	NSAssertReturn([self.mainWindow isInFullscreenMode]);
+
+	[self.mainWindow toggleFullScreen:nil];
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)note
@@ -181,6 +219,10 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 
 		[self.worldController autoConnectAfterWakeup:NO];	
 	}
+
+	[self maybeToggleFullscreenAfterLaunch];
+	
+	[TPCResourceManager copyResourcesToCustomAddonsFolder];
 }
 
 - (void)systemTintChangedNotification:(NSNotification *)notification;
@@ -190,53 +232,23 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 	[self.serverList reloadAllDrawings];
 }
 
-- (void)applicationDidChangeScreenParameters:(NSNotification *)aNotification
+- (void)reloadMainWindowFrameOnScreenChange
 {
-	/* Make sure the main window can fit in the new screen resolution. */
-	if (self.isInFullScreenMode) {
-		/* Reset window frame if screen resolution is changed. */
-		
-		[self.mainWindow setFrame:[RZMainScreen() frame] display:YES animate:YES];
-	} else {
-		NSRect visibleRect = RZMainScreen().visibleFrame;
-		NSRect windowRect = self.mainWindow.frame;
-		
-		BOOL redrawFrame = NO;
-		
-		if (visibleRect.size.height < windowRect.size.height) {
-			windowRect.size.height = visibleRect.size.height;
-			windowRect.origin.x = visibleRect.origin.x;
-			
-			redrawFrame = YES;
-		}
-		
-		if (visibleRect.size.width < windowRect.size.width) {
-			windowRect.size.width = visibleRect.size.width;
-			windowRect.origin.y = visibleRect.origin.y;
-			
-			redrawFrame = YES;
-		}
-		
-		if (redrawFrame) {
-			[self.mainWindow setFrame:windowRect display:YES animate:YES];
-		}
-	}
-
 	/* Redraw dock icon on potential screen resolution changes. */
 	[TVCDockIcon resetCachedCount];
-
+	
 	[self.worldController updateIcon];
-
+	
 	/* Update wether we are in high-resolution mode and redraw some stuff if we move state. */
-	BOOL inHighResMode = [RZMainScreen() runningInHighResolutionMode];
-
+	BOOL inHighResMode = [[self.mainWindow screen] runningInHighResolutionMode];
+	
 	if (NSDissimilarObjects(self.applicationIsRunningInHighResMode, inHighResMode)) {
 		[self.memberList reloadAllUserInterfaceElements];
-
+		
 		[self.serverList reloadAllDrawings];
 	}
-
-	self.applicationIsRunningInHighResMode = [RZMainScreen() runningInHighResolutionMode];
+	
+	self.applicationIsRunningInHighResMode = inHighResMode;
 }
 
 - (void)reloadUserInterfaceItems
@@ -254,7 +266,7 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 {
 	NSAssertReturn(self.terminating == NO);
 
-	id sel = self.worldController.selectedItem;
+	id sel = [self.worldController selectedItem];
 
 	if (sel) {
 		[sel resetState];
@@ -294,41 +306,6 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 	[self reloadUserInterfaceItems];
 }
 
-- (void)windowDidBecomeKey:(NSNotification *)notification
-{
-	self.mainWindowIsActive = YES;
-	
-	if (self.applicationIsChangingActiveState == NO) {
-		[self reloadUserInterfaceItems];
-	}
-
-	[self resetSelectedItemState];
-}
-
-- (void)windowDidResignKey:(NSNotification *)notification
-{
-	self.mainWindowIsActive = NO;
-	
-	if (self.applicationIsChangingActiveState == NO) {
-		[self reloadUserInterfaceItems];
-	}
-
-	[self.memberList destroyUserInfoPopoverOnWindowKeyChange];
-}
-
-- (BOOL)window:(NSWindow *)window shouldPopUpDocumentPathMenu:(NSMenu *)menu
-{
-	/* Return NO so that we can use the document icon feature to show an icon
-	 for an SSL unlock and lock locked and not allow user to click it. */
-
-	return NO;
-}
-
-- (BOOL)window:(NSWindow *)window shouldDragDocumentWithEvent:(NSEvent *)event from:(NSPoint)dragImageLocation withPasteboard:(NSPasteboard *)pasteboard
-{
-	return NO;
-}
-
 - (BOOL)queryTerminate
 {
 	if (self.terminating) {
@@ -340,7 +317,8 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 															   title:TXTLS(@"ApplicationWantsToTerminatePromptTitle") 
 													   defaultButton:TXTLS(@"QuitButton") 
 													 alternateButton:TXTLS(@"CancelButton")
-													  suppressionKey:nil suppressionText:nil];
+													  suppressionKey:nil
+													 suppressionText:nil];
 		
 		return result;
 	}
@@ -372,27 +350,72 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 
 	[RZAppleEventManager() removeEventHandlerForEventClass:KInternetEventClass andEventID:KAEGetURL];
 
+	if ([TPCPreferences reloadScrollbackOnLaunch] == NO) {
+		[TVCLogControllerHistoricLogSharedInstance() resetData]; // Delete database.
+	} else {
+		[TVCLogControllerHistoricLogSharedInstance() saveData]; // Save database.
+	}
+
+	BOOL onMountainLionOrLater = [TPCPreferences featureAvailableToOSXMountainLion];
+	
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if (onMountainLionOrLater) {
+		[self.cloudSyncManager setApplicationIsTerminating:YES];
+	}
+#endif
+	
 	if (self.skipTerminateSave == NO) {
 		[self saveWindowState];
 	}
+	
+	[self.menuController prepareForApplicationTermination];
+	
+	self.mainWindow.delegate = nil;
 
 	[RZRunningApplication() hide];
 
 	if (self.skipTerminateSave == NO) {
 		[self.worldController save];
 
-		self.terminatingClientCount = self.worldController.clients.count;
+		self.terminatingClientCount = [self.worldController.clients count];
 
-		[self.worldController terminate];
+		[self.worldController prepareForApplicationTermination];
 		
-		while (self.terminatingClientCount > 0) {
-			[RZMainRunLoop() runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
-		}
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+			if (self.cloudSyncManager) {
+				while (self.terminatingClientCount > 0 || ([self.cloudSyncManager isSyncingLocalKeysDownstream] ||
+														   [self.cloudSyncManager isSyncingLocalKeysUpstream]))
+				{
+					[RZMainRunLoop() runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
+				}
+			} else {
+				while (self.terminatingClientCount > 0) {
+					[RZMainRunLoop() runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
+				}
+			}
+#else
+			while (self.terminatingClientCount > 0) {
+				[RZMainRunLoop() runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.1]];
+			}
+#endif
 
-		[self.menuController terminate];
 	}
 	
+	[THOPluginManagerSharedInstance() unloadPlugins];
+	
 	[TPCPreferences saveTimeIntervalSinceApplicationInstall];
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+	if (onMountainLionOrLater) {
+		[self.cloudSyncManager closeCloudSyncSession];
+	}
+#endif
+	
+#ifdef TEXTUAL_BUILT_WITH_APP_NAP_DISABLED
+	if ([RZProcessInfo() respondsToSelector:@selector(endActivity:)]) {
+		[RZProcessInfo() endActivity:self.appNapProgressInformation];
+	}
+#endif
 }
 
 - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag
@@ -452,39 +475,49 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 #pragma mark -
 #pragma mark NSWindow Delegate
 
+- (void)windowDidChangeScreen:(NSNotification *)notification
+{
+	[self reloadMainWindowFrameOnScreenChange];
+}
+
+- (void)windowDidBecomeKey:(NSNotification *)notification
+{
+	self.mainWindowIsActive = YES;
+
+	if (self.applicationIsChangingActiveState == NO) {
+		[self reloadUserInterfaceItems];
+	}
+
+	[self resetSelectedItemState];
+}
+
+- (void)windowDidResignKey:(NSNotification *)notification
+{
+	self.mainWindowIsActive = NO;
+
+	if (self.applicationIsChangingActiveState == NO) {
+		[self reloadUserInterfaceItems];
+	}
+
+	[self.memberList destroyUserInfoPopoverOnWindowKeyChange];
+}
+
+- (BOOL)window:(NSWindow *)window shouldPopUpDocumentPathMenu:(NSMenu *)menu
+{
+	/* Return NO so that we can use the document icon feature to show an icon
+	 for an SSL unlock and lock locked and not allow user to click it. */
+
+	return NO;
+}
+
+- (BOOL)window:(NSWindow *)window shouldDragDocumentWithEvent:(NSEvent *)event from:(NSPoint)dragImageLocation withPasteboard:(NSPasteboard *)pasteboard
+{
+	return NO;
+}
+
 - (void)windowDidResize:(NSNotification *)notification
 {
 	[self.inputTextField resetTextFieldCellSize:YES];
-}
-
-- (void)windowWillEnterFullScreen:(NSNotification *)notification
-{
-	[self saveWindowState];
-}
-
-- (void)windowDidEnterFullScreen:(NSNotification *)notification
-{
-	self.isInFullScreenMode = YES;
-}
-
-- (void)windowDidExitFullScreen:(NSNotification *)notification
-{
-	[self loadWindowState:NO];
-	
-	self.isInFullScreenMode = NO;
-}
-
-- (NSSize)windowWillResize:(NSWindow *)awindow toSize:(NSSize)newSize
-{
-	if (NSDissimilarObjects(awindow, self.mainWindow)) {
-		return newSize; 
-	} else {
-		if (self.isInFullScreenMode) {
-			return awindow.frame.size;
-		} else {
-			return newSize;
-		}
-	}
 }
 
 - (BOOL)windowShouldZoom:(NSWindow *)awindow toFrame:(NSRect)newFrame
@@ -492,8 +525,18 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 	if (NSDissimilarObjects(self.mainWindow, awindow)) {
 		return YES;
 	} else {
-		return BOOLReverseValue(self.isInFullScreenMode);
+		return BOOLReverseValue([self.mainWindow isInFullscreenMode]);
 	}
+}
+
+- (NSSize)window:(NSWindow *)window willUseFullScreenContentSize:(NSSize)proposedSize
+{
+	return proposedSize;
+}
+
+- (NSApplicationPresentationOptions)window:(NSWindow *)window willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)proposedOptions
+{
+    return (NSApplicationPresentationFullScreen | NSApplicationPresentationHideDock | NSApplicationPresentationAutoHideMenuBar);
 }
 
 - (id)windowWillReturnFieldEditor:(NSWindow *)sender toObject:(id)client
@@ -501,11 +544,12 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 	static BOOL formattingMenuSet;
 
 	if (formattingMenuSet == NO) {
-		NSMenu	   *editorMenu = self.inputTextField.menu;
-		NSMenuItem *formatMenu = self.formattingMenu.formatterMenu;
+		NSMenu *editorMenu = [self.inputTextField menu];
+
+		NSMenuItem *formatMenu = [self.formattingMenu formatterMenu];
 		
 		if (formatMenu) {
-			NSInteger fmtrIndex = [editorMenu indexOfItemWithTitle:formatMenu.title];
+			NSInteger fmtrIndex = [editorMenu indexOfItemWithTitle:[formatMenu title]];
 			
 			if (fmtrIndex == -1) {
 				[editorMenu addItem:[NSMenuItem separatorItem]];
@@ -522,22 +566,34 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 }
 
 #pragma mark -
+#pragma mark Properties
+
+- (TLOInputHistory *)globalInputHistory
+{
+	if ([TPCPreferences inputHistoryIsChannelSpecific] == NO) {
+		return _globalInputHistory;
+	} else {
+		return [[self.worldController selectedItem] inputHistory];
+	}
+}
+
+#pragma mark -
 #pragma mark Utilities
 
 - (void)sendText:(NSString *)command
 {
 	NSAttributedString *as = [self.inputTextField attributedStringValue];
-	
+
 	[self.inputTextField setAttributedStringValue:[NSAttributedString emptyString]];
 
-	if (NSObjectIsNotEmpty(as)) {
+	if ([as length] > 0) {
 		[self.worldController inputText:as command:command];
 		
-		[self.inputHistory add:as];
+		[self.globalInputHistory add:as];
 	}
 	
 	if (self.completionStatus) {
-		[self.completionStatus clear];
+		[self.completionStatus clear:YES];
 	}
 }
 
@@ -650,63 +706,44 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 #pragma mark -
 #pragma mark Preferences
 
-- (void)loadWindowState:(BOOL)honorFullscreen
+- (void)loadWindowState
 {
-	NSDictionary *dic = [TPCPreferences loadWindowStateWithName:@"Window -> Main Window"];
+	[self.mainWindow restoreWindowStateUsingKeyword:@"Main Window"];
+
+	NSDictionary *dic = [RZUserDefaults() dictionaryForKey:@"Window -> Main Window Window State"];
 
 	if (dic) {
-		NSInteger x = [dic integerForKey:@"x"];
-		NSInteger y = [dic integerForKey:@"y"];
-		NSInteger w = [dic integerForKey:@"w"];
-		NSInteger h = [dic integerForKey:@"h"];
+		if ([dic containsKey:@"serverList"] == NO) {
+			self.serverSplitView.dividerPosition = 165;
+		} else {
+			self.serverSplitView.dividerPosition = [dic integerForKey:@"serverList"];
 
-		BOOL fullscreen = [dic boolForKey:@"fullscreen"];
-
-		[self.mainWindow setFrame:NSMakeRect(x, y, w, h) display:YES animate:BOOLReverseValue(self.isInFullScreenMode)];
-		
-		self.serverSplitView.dividerPosition = [dic integerForKey:@"serverList"];
-		self.memberSplitView.dividerPosition = [dic integerForKey:@"memberList"];
-		
-		if (self.serverSplitView.dividerPosition < _minimumSplitViewWidth) {
-			self.serverSplitView.dividerPosition = _defaultSplitViewWidth;
-		}
-		
-		if (self.memberSplitView.dividerPosition < _minimumSplitViewWidth) {
-			self.memberSplitView.dividerPosition = _defaultSplitViewWidth;
+			if (self.serverSplitView.dividerPosition < _minimumSplitViewWidth) {
+				self.serverSplitView.dividerPosition = _defaultSplitViewWidth;
+			}
 		}
 
-		if (fullscreen && honorFullscreen) {
-			[self.menuController performSelector:@selector(toggleFullscreenMode:) withObject:nil afterDelay:2.0];
+		if ([dic containsKey:@"memberList"] == NO) {
+			self.memberSplitView.dividerPosition = 120;
+		} else {
+			self.memberSplitView.dividerPosition = [dic integerForKey:@"memberList"];
+			
+			if (self.memberSplitView.dividerPosition < _minimumSplitViewWidth) {
+				self.memberSplitView.dividerPosition = _defaultSplitViewWidth;
+			}
 		}
 	} else {
-		[self.mainWindow setFrame:[TPCPreferences defaultWindowFrame]
-						  display:YES
-						  animate:BOOLReverseValue(self.isInFullScreenMode)];
-
 		self.serverSplitView.dividerPosition = 165;
 		self.memberSplitView.dividerPosition = 120;
 	}
 
-	self.serverListSplitViewOldPosition = self.serverSplitView.dividerPosition;
-	self.memberSplitViewOldPosition = self.memberSplitView.dividerPosition;
+	self.serverListSplitViewOldPosition = [self.serverSplitView dividerPosition];
+	self.memberSplitViewOldPosition = [self.memberSplitView dividerPosition];
 }
 
 - (void)saveWindowState
 {
 	NSMutableDictionary *dic = [NSMutableDictionary dictionary];
-
-	BOOL fullscreen = self.isInFullScreenMode;
-
-	if (fullscreen) {
-		[self.menuController toggleFullscreenMode:nil];
-	}
-	
-	NSRect rect = self.mainWindow.frame;
-
-	[dic setInteger:rect.origin.x forKey:@"x"];
-	[dic setInteger:rect.origin.y forKey:@"y"];
-	[dic setInteger:rect.size.width	forKey:@"w"];
-	[dic setInteger:rect.size.height forKey:@"h"];
 	
 	if (self.serverSplitView.dividerPosition < _minimumSplitViewWidth) {
 		if (self.serverListSplitViewOldPosition < _minimumSplitViewWidth) {
@@ -723,13 +760,15 @@ __weak static TXMasterController *TXGlobalMasterControllerClassReference;
 			self.memberSplitView.dividerPosition = self.memberSplitViewOldPosition;
 		}
 	}
+
+	[dic setBool:[self.mainWindow isInFullscreenMode] forKey:@"fullscreen"];
+
+	[self.mainWindow saveWindowStateUsingKeyword:@"Main Window"];
 	
 	[dic setInteger:self.serverSplitView.dividerPosition forKey:@"serverList"];
 	[dic setInteger:self.memberSplitView.dividerPosition forKey:@"memberList"];
 
-	[dic setBool:fullscreen forKey:@"fullscreen"];
-
-	[TPCPreferences saveWindowState:dic name:@"Window -> Main Window"];
+	[RZUserDefaults() setObject:dic forKey:@"Window -> Main Window Window State"];
 }
 
 #pragma mark -
@@ -1092,6 +1131,15 @@ typedef enum TXMoveKind : NSInteger {
 	}
 }
 
+- (void)sendControlEnterMessageMaybe:(NSEvent *)e
+{
+	if ([TPCPreferences controlEnterSnedsMessage]) {
+		[self textEntered];
+	} else {
+		[self.inputTextField keyDownToSuper:e];
+	}
+}
+
 - (void)sendMsgAction:(NSEvent *)e
 {
 	NSWindowNegateActionWithAttachedSheet();
@@ -1128,9 +1176,9 @@ typedef enum TXMoveKind : NSInteger {
 	NSAttributedString *s;
 	
 	if (up) {
-		s = [self.inputHistory up:[self.inputTextField attributedStringValue]];
+		s = [self.globalInputHistory up:[self.inputTextField attributedStringValue]];
 	} else {
-		s = [self.inputHistory down:[self.inputTextField attributedStringValue]];
+		s = [self.globalInputHistory down:[self.inputTextField attributedStringValue]];
 	}
 	
 	if (s) {
@@ -1229,8 +1277,8 @@ typedef enum TXMoveKind : NSInteger {
 
 - (void)exitFullscreenMode:(NSEvent *)e
 {
-    if (self.isInFullScreenMode && [self.inputTextField isFocused] == NO) {
-        [self.menuController toggleFullscreenMode:nil];
+    if ([self.mainWindow isInFullscreenMode] && [self.inputTextField isFocused] == NO) {
+        [self.mainWindow toggleFullScreen:nil];
     } else {
         [self.inputTextField keyDown:e];
     }
@@ -1280,7 +1328,7 @@ typedef enum TXMoveKind : NSInteger {
 	
 	[self handler:@selector(selectPreviousSelection:) code:TXKeyTabCode mods:NSAlternateKeyMask];
 	
-	[self handler:@selector(textFormattingBold:)			char:'b' mods:NSCommandKeyMask];
+	[self handler:@selector(textFormattingBold:)			char:'b' mods: NSCommandKeyMask];
 	[self handler:@selector(textFormattingUnderline:)		char:'u' mods:(NSCommandKeyMask | NSAlternateKeyMask)];
 	[self handler:@selector(textFormattingItalic:)			char:'i' mods:(NSCommandKeyMask | NSAlternateKeyMask)];
     [self handler:@selector(textFormattingForegroundColor:) char:'c' mods:(NSCommandKeyMask | NSAlternateKeyMask)];
@@ -1291,6 +1339,8 @@ typedef enum TXMoveKind : NSInteger {
 	[self handler:@selector(inputHistoryUp:) char:'p' mods:NSControlKeyMask];
 	[self handler:@selector(inputHistoryDown:) char:'n' mods:NSControlKeyMask];
 
+	[self inputHandler:@selector(sendControlEnterMessageMaybe:) code:TXKeyEnterCode mods:NSControlKeyMask];
+	
 	[self inputHandler:@selector(sendMsgAction:) code:TXKeyReturnCode mods:NSCommandKeyMask];
 	[self inputHandler:@selector(sendMsgAction:) code:TXKeyEnterCode mods:NSCommandKeyMask];
 	
@@ -1378,12 +1428,12 @@ typedef enum TXMoveKind : NSInteger {
 	if (u.config.autoConnect) {
 		[u connect];
 	}
+	
+	[self.mainWindow makeKeyAndOrderFront:nil];
 
 	NSObjectIsEmptyAssert(u.channels);
 
 	[self.worldController select:u.channels[0]];
-
-	[self.mainWindow makeKeyAndOrderFront:nil];
 }
 
 - (void)welcomeSheetWillClose:(TDCWelcomeSheet *)sender
@@ -1413,6 +1463,26 @@ typedef enum TXMoveKind : NSInteger {
 + (IRCWorld *)worldController
 {
 	return [TXGlobalMasterControllerClassReference world];
+}
+
+- (TPCThemeController *)themeController
+{
+	return [TXGlobalMasterControllerClassReference themeControllerPntr];
+}
+
++ (TPCThemeController *)themeController
+{
+	return [TXGlobalMasterControllerClassReference themeControllerPntr];
+}
+
+- (TXMenuController *)menuController
+{
+	return [TXGlobalMasterControllerClassReference menuController];
+}
+
++ (TXMenuController *)menuController
+{
+	return [TXGlobalMasterControllerClassReference menuController];
 }
 
 @end

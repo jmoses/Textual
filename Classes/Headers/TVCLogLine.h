@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -48,9 +48,11 @@
 #define TXLogLineDefaultRawCommandValue			@"-100"
 
 typedef enum TVCLogLineType : NSInteger {
+	TVCLogLineUndefinedType					= 0,
 	TVCLogLineActionType,
 	TVCLogLineActionNoHighlightType,
 	TVCLogLineCTCPType,
+	TVCLogLineDCCFileTransferType,
 	TVCLogLineDebugType,
 	TVCLogLineInviteType,
 	TVCLogLineJoinType,
@@ -67,25 +69,37 @@ typedef enum TVCLogLineType : NSInteger {
 	TVCLogLineWebsiteType,
 } TVCLogLineType;
 
-typedef enum TVCLogMemberType : NSInteger {
-	TVCLogMemberNormalType,
-	TVCLogMemberLocalUserType,
-} TVCLogMemberType;
+typedef enum TVCLogLineMemberType : NSInteger {
+	TVCLogLineMemberNormalType,
+	TVCLogLineMemberLocalUserType,
+} TVCLogLineMemberType;
 
 #define IRCCommandFromLineType(t)		[TVCLogLine lineTypeString:t]
 
-@interface TVCLogLine : NSObject
+@interface TVCLogLine : NSManagedObject
 @property (nonatomic, assign) BOOL isEncrypted;
 @property (nonatomic, assign) BOOL isHistoric; /* Identifies a line restored from previous session. */
 @property (nonatomic, strong) NSDate *receivedAt;
 @property (nonatomic, strong) NSString *nickname;
 @property (nonatomic, strong) NSString *messageBody;
 @property (nonatomic, strong) NSString *rawCommand; // Can be the actual command (PRIVMSG, NOTICE, etc.) or the raw numeric (001, 002, etc.)
-@property (nonatomic, assign) TVCLogLineType lineType;
-@property (nonatomic, assign) TVCLogMemberType memberType;
-@property (nonatomic, strong) NSArray *highlightKeywords;
-@property (nonatomic, strong) NSArray *excludeKeywords;
-@property (nonatomic, assign) NSInteger nicknameColorNumber;
+@property (nonatomic, assign) NSNumber *lineTypeInteger;
+@property (nonatomic, assign) NSNumber *memberTypeInteger;
+@property (nonatomic, assign) NSNumber *nicknameColorNumber;
+@property (nonatomic, strong) id highlightKeywords;
+@property (nonatomic, strong) id excludeKeywords;
+
+/* These properties are proxies for their NSNumber values. */
+@property (nonatomic, uweak) TVCLogLineType lineType;
+@property (nonatomic, uweak) TVCLogLineMemberType memberType;
+
++ (TVCLogLine *)newManagedObjectWithoutContextAssociation;
++ (TVCLogLine *)newManagedObjectForClient:(IRCClient *)client channel:(IRCChannel *)channel;
+
+/* performContextInsertion is automatically called by the TVCLogController 
+ print method: the moment before it actaully prints. It is not advised to
+ call this as it may create duplicate lines. */
+- (void)performContextInsertion;
 
 - (NSString *)formattedTimestamp;
 - (NSString *)formattedTimestampWithForcedFormat:(NSString *)format;
@@ -93,9 +107,11 @@ typedef enum TVCLogMemberType : NSInteger {
 - (NSString *)formattedNickname:(IRCChannel *)owner;
 - (NSString *)formattedNickname:(IRCChannel *)owner withForcedFormat:(NSString *)format;
 
-+ (NSString *)lineTypeString:(TVCLogLineType)type;
-+ (NSString *)memberTypeString:(TVCLogMemberType)type;
+- (NSString *)lineTypeString;
+- (NSString *)memberTypeString;
 
-- (id)initWithDictionary:(NSDictionary *)dic;	// For internal use only. A plugin should not call.
-- (NSDictionary *)dictionaryValue;				// For internal use only. A plugin should not call.
+- (NSString *)renderedBodyForTranscriptLogInChannel:(IRCChannel *)channel;
+
++ (NSString *)lineTypeString:(TVCLogLineType)type;
++ (NSString *)memberTypeString:(TVCLogLineMemberType)type;
 @end

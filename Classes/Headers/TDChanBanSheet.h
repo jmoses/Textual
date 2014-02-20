@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -38,8 +38,8 @@
 #import "TextualApplication.h"
 
 @interface TDChanBanSheet : TDCSheetBase
-@property (nonatomic, nweak) NSTextField *headerTitleField;
-@property (nonatomic, nweak) TVCListView *banTable;
+@property (nonatomic, nweak) IBOutlet NSTextField *headerTitleField;
+@property (nonatomic, nweak) IBOutlet TVCListView *banTable;
 @property (nonatomic, strong) NSMutableArray *banList;
 @property (nonatomic, strong) NSMutableArray *changeModeList;
 
@@ -48,8 +48,8 @@
 
 - (void)addBan:(NSString *)host tset:(NSString *)timeSet setby:(NSString *)owner;
 
-- (void)onUpdate:(id)sender;
-- (void)onRemoveBans:(id)sender;
+- (IBAction)onUpdate:(id)sender;
+- (IBAction)onRemoveBans:(id)sender;
 @end
 
 @interface NSObject (TDChanBanSheetDelegate)

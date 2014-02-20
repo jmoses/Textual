@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -46,13 +46,13 @@
 - (id)init
 {
 	if ((self = [super init])) {
-		[NSBundle loadNibNamed:@"TDCWelcomeSheet" owner:self];
+		[RZMainBundle() loadCustomNibNamed:@"TDCWelcomeSheet" owner:self topLevelObjects:nil];
 		
 		self.channelList = [NSMutableArray new];
 
 		/* Load the list of available IRC networks. */
-		NSString *slp = [[TPCPreferences applicationResourcesFolderPath] stringByAppendingPathComponent:@"IRCNetworks.plist"];
-
+		NSString *slp = [RZMainBundle() pathForResource:@"IRCNetworks" ofType:@"plist"];
+		
 		self.serverList = [NSDictionary dictionaryWithContentsOfFile:slp];
 
 		/* Populate the server address field with the IRC network list. */
@@ -104,6 +104,12 @@
 - (void)close
 {
 	[super cancel:nil];
+}
+
+- (void)releaseTableViewDataSourceBeforeSheetClosure
+{
+	self.channelTable.delegate = nil;
+	self.channelTable.dataSource = nil;
 }
 
 - (void)ok:(id)sender

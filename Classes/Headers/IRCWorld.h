@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -38,6 +38,11 @@
 
 #import "TextualApplication.h"
 
+#define IRCWorldControllerDefaultsStorageKey				@"World Controller"
+
+#define IRCWorldControllerCloudDeletedClientsStorageKey		@"World Controller -> Cloud Deleted Clients"
+#define IRCWorldControllerCloudClientEntryKeyPrefix			@"World Controller -> Cloud Synced Client -> "
+
 @interface IRCWorld : NSObject <NSOutlineViewDataSource, NSOutlineViewDelegate>
 @property (nonatomic, assign) NSInteger messagesSent;
 @property (nonatomic, assign) NSInteger messagesReceived;
@@ -47,19 +52,26 @@
 @property (nonatomic, assign) BOOL isSoundMuted;
 @property (nonatomic, assign) BOOL isPopulatingSeeds;
 @property (nonatomic, assign) BOOL areNotificationsDisabled;
+@property (nonatomic, assign) BOOL temporarilyDisablePreviousSelectionUpdates;
 @property (nonatomic, strong) IRCTreeItem *selectedItem;
 @property (nonatomic, strong) NSString *previousSelectedClientId;
 @property (nonatomic, strong) NSString *previousSelectedChannelId;
-@property (nonatomic, strong) NSDateFormatter *isoStandardDateFormatter; // ISO standard date formatter used for internal purposes. (yyyy-MM-dd'T'HH:mm:ss.SSS'Z')
+@property (nonatomic, strong, readonly) OELReachability *networkReachability;
+@property (nonatomic, strong, readonly) NSDateFormatter *isoStandardDateFormatter; // ISO standard date formatter used for internal purposes. (yyyy-MM-dd'T'HH:mm:ss.SSS'Z')
 
 - (void)setupConfiguration;
 - (void)setupOtherServices;
 - (void)setupTree;
+
 - (void)save;
 
 - (NSMutableDictionary *)dictionaryValue;
 
-- (void)terminate;
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+- (NSMutableDictionary *)cloudDictionaryValue;
+#endif
+
+- (void)prepareForApplicationTermination;
 
 - (void)autoConnectAfterWakeup:(BOOL)afterWakeUp;
 - (void)prepareForSleep;
@@ -105,6 +117,10 @@
 - (void)addHighlightInChannel:(IRCChannel *)channel withLogLine:(TVCLogLine *)logLine;
 
 - (void)reloadTheme;
+- (void)reloadTheme:(BOOL)reloadUserInterface;
+
+- (void)reloadLoadingScreen;
+
 - (void)preferencesChanged;
 
 - (void)changeTextSize:(BOOL)bigger;
@@ -116,7 +132,9 @@
 
 - (TVCLogController *)createLogWithClient:(IRCClient *)client channel:(IRCChannel *)channel;
 
-- (void)destroyClient:(IRCClient *)client;
+- (void)destroyClient:(IRCClient *)u;
+- (void)destroyClient:(IRCClient *)u bySkippingCloud:(BOOL)skipCloud;
+
 - (void)destroyChannel:(IRCChannel *)c;
 - (void)destroyChannel:(IRCChannel *)c part:(BOOL)forcePart;
 
@@ -124,10 +142,19 @@
 - (void)executeScriptCommandOnAllViews:(NSString *)command arguments:(NSArray *)args onQueue:(BOOL)onQueue;
 
 - (void)logKeyDown:(NSEvent *)e;
-- (void)logDoubleClick:(NSString *)s;
 
 - (void)clearContentsOfClient:(IRCClient *)u;
 - (void)clearContentsOfChannel:(IRCChannel *)c inClient:(IRCClient *)u;
 
-- (void)destroyAllEvidence;
+- (void)destroyAllEvidence; // Clears all views everywhere.
+
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+- (void)addClientToListOfDeletedClients:(NSString *)itemUUID;
+- (void)removeClientFromListOfDeletedClients:(NSString *)itemUUID;
+
+- (void)removeClientConfigurationCloudEntry:(NSString *)itemUUID;
+
+- (void)processCloudCientDeletionList:(NSArray *)deletedClients;
+#endif
+
 @end

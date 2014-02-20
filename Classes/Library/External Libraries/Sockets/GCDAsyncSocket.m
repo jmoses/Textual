@@ -2959,6 +2959,17 @@ static NSThread *cfstreamThread;  // Used for CFStreams
 	return [NSError errorWithDomain:@"kCFStreamErrorDomainSSL" code:ssl_error userInfo:userInfo];
 }
 
+- (NSError *)sslError:(OSStatus)ssl_error peerCertificateTrustRef:(SecTrustRef)trustRef
+{
+	NSParameterAssert(trustRef != NULL);
+
+	NSString *msg = @"Error code definition can be found in Apple's SecureTransport.h";
+	NSDictionary *userInfo = @{NSLocalizedRecoverySuggestionErrorKey : msg,
+							   @"peerCertificateTrustRef" : (__bridge id)trustRef};
+	
+	return [NSError errorWithDomain:@"kCFStreamErrorDomainSSL" code:ssl_error userInfo:userInfo];
+}
+
 - (NSError *)connectTimeoutError
 {
 	NSString *errMsg = NSLocalizedStringWithDefaultValue(@"GCDAsyncSocketConnectTimeoutError",
@@ -6563,7 +6574,21 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	}
 	else
 	{
-		[self closeWithError:[self sslError:status]];
+        SecTrustRef trust = NULL;
+		
+        SSLCopyPeerTrust(sslContext, &trust);
+		
+        NSError *error;
+		
+        if (trust) {
+            error = [self sslError:status peerCertificateTrustRef:trust];
+		
+			CFRelease(trust);
+        } else {
+            error = [self sslError:status];
+        }
+		
+        [self closeWithError:error];
 	}
 }
 

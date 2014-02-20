@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -41,17 +41,22 @@
 #import <Growl/Growl.h>
 
 typedef enum TXNotificationType : NSInteger {
-	TXNotificationHighlightType				= 1000,
-	TXNotificationNewPrivateMessageType		= 1001,
-	TXNotificationChannelMessageType		= 1002,
-	TXNotificationChannelNoticeType			= 1003,
-	TXNotificationPrivateMessageType		= 1004,
-	TXNotificationPrivateNoticeType			= 1005,
-	TXNotificationKickType					= 1006,
-	TXNotificationInviteType				= 1007,
-	TXNotificationConnectType				= 1008,
-	TXNotificationDisconnectType			= 1009,
-	TXNotificationAddressBookMatchType		= 1010,
+	TXNotificationHighlightType							= 1000,
+	TXNotificationNewPrivateMessageType					= 1001,
+	TXNotificationChannelMessageType					= 1002,
+	TXNotificationChannelNoticeType						= 1003,
+	TXNotificationPrivateMessageType					= 1004,
+	TXNotificationPrivateNoticeType						= 1005,
+	TXNotificationKickType								= 1006,
+	TXNotificationInviteType							= 1007,
+	TXNotificationConnectType							= 1008,
+	TXNotificationDisconnectType						= 1009,
+	TXNotificationAddressBookMatchType					= 1010,
+	TXNotificationFileTransferSendSuccessfulType		= 1011,
+	TXNotificationFileTransferReceiveSuccessfulType		= 1012,
+	TXNotificationFileTransferSendFailedType			= 1013,
+	TXNotificationFileTransferReceiveFailedType			= 1014,
+	TXNotificationFileTransferReceiveRequestedType		= 1015,
 } TXNotificationType;
 
 #define TXNotificationDialogStandardNicknameFormat		@"%@ %@"

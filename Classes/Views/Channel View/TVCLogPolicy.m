@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -42,10 +42,6 @@
 #define _WebMenuItemTagInspectElementMountainLion	2025
 
 #define _WebMenuItemTagIRCopServices	42354
-
-@interface TVCLogPolicy ()
-@property (nonatomic, readonly, uweak) TXMenuController *menuController;
-@end
 
 @implementation TVCLogPolicy
 
@@ -89,6 +85,11 @@
 	self.nickname = nil;
 	
 	[self.menuController memberListDoubleClicked:nil];
+}
+
+- (void)topicDoubleClicked
+{
+    [self.menuController showChannelTopicDialog:nil];
 }
 
 - (NSArray *)webView:(WebView *)sender contextMenuItemsForElement:(NSDictionary *)element defaultMenuItems:(NSArray *)defaultMenuItems
@@ -207,11 +208,6 @@
 	} else {
 		[listener use];
 	}
-}
-
-- (TXMenuController *)menuController
-{
-	return self.masterController.menuController;
 }
 
 @end

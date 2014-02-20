@@ -6,8 +6,8 @@
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
  Copyright (c) 2008 - 2010 Satoshi Nakagawa <psychs AT limechat DOT net>
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -78,12 +78,12 @@
 	NSString *serverInfo = location;
 	NSString *channelInfo = nil;
 
-	if (slashMatches.count == 3) { // Only cut if we do have an extra slash.
+	if ([slashMatches count] == 3) { // Only cut if we do have an extra slash.
 		NSRange backwardRange = [location rangeOfString:@"/" options:NSBackwardsSearch];
 
 		if (NSDissimilarObjects(backwardRange.location, NSNotFound)) {
-			serverInfo = [location safeSubstringToIndex:backwardRange.location];
-			channelInfo = [location safeSubstringAfterIndex:backwardRange.location];
+			serverInfo = [location substringToIndex:backwardRange.location];
+			channelInfo = [location substringAfterIndex:backwardRange.location];
 		}
 	}
 
@@ -110,11 +110,13 @@
 		 acknowledgements					— Open acknowledgements file.
 		 appstore-page						— Open our Mac App Store page.
 		 contributors						— Open contributors file. 
+		 diagnostic-reports-folder			— System diagnostic reports folder.
 		 custom-style-folder				— Open the custom style storage location folder.
+		 icloud-style-folder				— Open the custom style storage location folder.
 		 custom-styles-folder				— Same as custom-style-folder except plural.
+		 icloud-styles-folder				— Same as custom-style-folder except plural.
 		 newsletter							— Open the subscription page for the newsletter.
 		 support-channel					— Connect to the #textual channel.
-		 support-group						— Open the homepage of our support group.
 		 testing-channel					— Connect to the #textual-testing channel.
 		 unsupervised-script-folder			— Open the unsupervised scripts folder.
 		 unsupervised-scripts-folder		— Same as unsupervised-script-folder except plural.
@@ -123,7 +125,7 @@
 
 	if ([addressScheme isEqualToString:@"textual"]) {
 		/* We will use the menu controller often so just make a local var. */
-		TXMenuController *menuc = self.masterController.menuController;
+		TXMenuController *menuc = [self.masterController menuController];
 		
 		if ([serverAddress isEqualToString:@"acknowledgements"])
 		{
@@ -138,7 +140,7 @@
 		}
 		else if ([serverAddress isEqualToString:@"contributors"])
 		{
-			[menuc showContributors:nil];
+			[menuc showAcknowledgments:nil];
 		}
 		else if ([serverAddress isEqualToString:@"custom-style-folder"] ||
 				 [serverAddress isEqualToString:@"custom-styles-folder"])
@@ -149,13 +151,23 @@
 		{
 			[TLOpenLink openWithString:@"http://www.codeux.com/textual/newsletter/"];
 		}
+		else if ([serverAddress isEqualToString:@"diagnostic-reports-folder"])
+		{
+			NSString *userpath = [[TPCPreferences userHomeDirectoryPathOutsideSandbox] stringByAppendingPathComponent:@"/Library/Logs/DiagnosticReports"];
+			
+			[RZWorkspace() openFile:@"/Library/Logs/DiagnosticReports"];
+			[RZWorkspace() openFile:userpath];
+		}
 		else if ([serverAddress isEqualToString:@"support-channel"])
 		{
 			[menuc connectToTextualHelpChannel:nil];
 		}
-		else if ([serverAddress isEqualToString:@"support-group"])
+		else if ([serverAddress isEqualToString:@"icloud-style-folder"] ||
+				 [serverAddress isEqualToString:@"icloud-styles-folder"])
 		{
-			[TLOpenLink openWithString:@"http://www.codeux.com/textual/support-group/"];
+#ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
+			[RZWorkspace() openFile:[TPCPreferences cloudCustomThemeFolderPath]];
+#endif
 		}
 		else if ([serverAddress isEqualToString:@"testing-channel"])
 		{
@@ -200,10 +212,9 @@
 	 care with the channel information. Just a basic parse to establish if 
 	 the "needssl" token is present as well as the channel name having a 
 	 pound (#) sign in front of it. */
-
 	NSMutableString *channelList = [NSMutableString string];
 
-	if (NSObjectIsNotEmpty(channelInfo)) {
+	if (channelInfo) {
 		NSInteger channelCount = 0;
 
 		NSArray *dataSections = [channelInfo split:@","];
@@ -293,15 +304,14 @@
 
     if (hasOpeningBracket && hasClosingBracket) {
 		/* Get address from inside brackets. */
-
 		NSInteger startPos = ([tempStore stringPosition:@"["] + 1);
 		NSInteger srendPos =  [tempStore stringPosition:@"]"];
 
 		NSRange servRange = NSMakeRange(startPos, (srendPos - startPos));
 
-		serverAddress = [tempStore safeSubstringWithRange:servRange];
+		serverAddress = [tempStore substringWithRange:servRange];
 
-		tempStore = [tempStore safeSubstringAfterIndex:srendPos];
+		tempStore = [tempStore substringAfterIndex:srendPos];
     } else {
 		if (hasOpeningBracket == NO && hasClosingBracket == NO) {
 			/* Our server address did not contain brackets. Does it
@@ -310,11 +320,11 @@
 			if ([tempStore contains:@":"]) {
 				NSInteger cutPos = [tempStore stringPosition:@":"];
 
-				serverAddress = [tempStore safeSubstringToIndex:cutPos];
+				serverAddress = [tempStore substringToIndex:cutPos];
 
 				/* We cut the server address out of our temporary store,
 				 but left the colon and everything after it, in it. */
-				tempStore = [tempStore safeSubstringFromIndex:cutPos];
+				tempStore = [tempStore substringFromIndex:cutPos];
 			} else {
 				serverAddress = tempStore;
 			}
@@ -341,7 +351,7 @@
             connectionUsesSSL = YES;
         }
 
-        tempStore = [tempStore safeSubstringFromIndex:chopIndex];
+        tempStore = [tempStore substringFromIndex:chopIndex];
 
 		/* Make sure the port number matches a valid format. If it does,
 		 then we are all good, and done with the port. */
@@ -356,7 +366,7 @@
 
             if ([TLORegularExpression string:tempStore isMatchedByRegex:@"^(\\+?[0-9]{1,6})$"]) {
                 if ([tempStore hasPrefix:@"+"]) {
-                    tempStore = [tempStore safeSubstringFromIndex:1];
+                    tempStore = [tempStore substringFromIndex:1];
 
                     connectionUsesSSL = YES;
                 }
@@ -402,8 +412,9 @@
 	/* Feed the world our seed and finish up. */
 	IRCClient *uf = [self.worldController createClient:dic reload:YES];
 
-	if (NSObjectIsNotEmpty(serverPassword)) {
+	if (serverPassword) {
 		[uf.config setServerPassword:serverPassword];
+		[uf.config writeServerPasswordKeychainItemToDisk];
 	}
 	
 	[self.worldController save];

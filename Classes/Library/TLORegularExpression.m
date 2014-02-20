@@ -5,8 +5,8 @@
        | |  __/>  <| |_| |_| | (_| | |   | ||  _ <| |___
        |_|\___/_/\_\\__|\__,_|\__,_|_|  |___|_| \_\\____|
 
- Copyright (c) 2010 — 2013 Codeux Software & respective contributors.
-        Please see Contributors.rtfd and Acknowledgements.rtfd
+ Copyright (c) 2010 — 2014 Codeux Software & respective contributors.
+     Please see Acknowledgements.pdf for additional information.
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
@@ -92,6 +92,28 @@
 	NSString *newString = [regex stringByReplacingMatchesInString:haystack options:0 range:strRange withTemplate:puppy];
 
 	return newString;
+}
+
++ (NSInteger)totalNumberOfMatchesInString:(NSString *)haystack withRegex:(NSString *)needle
+{
+	return [self totalNumberOfMatchesInString:haystack withRegex:needle withoutCase:NO];
+}
+
++ (NSInteger)totalNumberOfMatchesInString:(NSString *)haystack withRegex:(NSString *)needle withoutCase:(BOOL)caseless
+{
+    NSRange strRange = NSMakeRange(0, haystack.length);
+	
+	NSRegularExpression *regex;
+	
+	if (caseless) {
+		regex = [NSRegularExpression regularExpressionWithPattern:needle options:NSRegularExpressionCaseInsensitive error:NULL];
+	} else {
+		regex = [NSRegularExpression regularExpressionWithPattern:needle options:0 error:NULL];
+	}
+	
+	NSArray *matches = [regex matchesInString:haystack options:0 range:strRange];
+
+	return [matches count];
 }
 
 + (NSArray *)matchesInString:(NSString *)haystack withRegex:(NSString *)needle
