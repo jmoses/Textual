@@ -53,6 +53,9 @@
 #define _addonsToolbarItemIndex				8
 #define _addonsToolbarItemMultiplier		65
 
+#define _preferencesWindowDefaultFrameWidth			534
+#define _preferencesWindowDefaultFrameHeight		332
+
 #ifdef TEXTUAL_BUILT_WITH_ICLOUD_SUPPORT
 @interface TDCPreferencesController ()
 @property (nonatomic, strong) TDCProgressInformationSheet *tcopyStyleFilesProgressIndicator;
@@ -81,7 +84,6 @@
 
 	// self.alertSounds treats anything that is not a TDCPreferencesSoundWrapper as
 	// an indicator that a [NSMenuItem separatorItem] should be placed in our menu.
-
 	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationAddressBookMatchType]];
 	[self.alertSounds addObject:NSStringWhitespacePlaceholder];
 	[self.alertSounds addObject:[TDCPreferencesSoundWrapper soundWrapperWithEventType:TXNotificationConnectType]];
@@ -109,7 +111,7 @@
 
 	[self.scriptsController populateData];
 
-	self.installedScriptsTable.dataSource = self.scriptsController;
+	 self.installedScriptsTable.dataSource = self.scriptsController;
 	[self.installedScriptsTable reloadData];
 
 	[self setUpToolbarItemsAndMenus];
@@ -286,6 +288,11 @@
 
 - (void)firstPane:(NSView *)view selectedItem:(NSInteger)key
 {
+	[self firstPane:view selectedItem:key animianteTransition:YES];
+}
+
+- (void)firstPane:(NSView *)view selectedItem:(NSInteger)key animianteTransition:(BOOL)isAnimated
+{
 	NSRect windowFrame = self.window.frame;
 
 	windowFrame.size.width = view.frame.size.width;
@@ -297,7 +304,7 @@
 		[self.contentView.subviews[0] removeFromSuperview];
 	}
 
-	[self.window setFrame:windowFrame display:YES animate:YES];
+	[self.window setFrame:windowFrame display:YES animate:isAnimated];
 
 	[self.contentView setFrame:view.frame];
 	[self.contentView addSubview:view];
@@ -1191,8 +1198,8 @@
 							action:@selector(onPurgeOfCloudFilesRequestedCallback:withOriginalAlert:)
 							  body:TXTLS(@"iCloudSyncDeleteAllFilesDialogMessage")
 							 title:TXTLS(@"iCloudSyncDeleteAllFilesDialogTitle")
-					 defaultButton:TXTLS(@"CancelButton")
-				   alternateButton:TXTLS(@"ContinueButton")
+					 defaultButton:TXTLS(@"BasicLanguage[1009]")
+				   alternateButton:TXTLS(@"BasicLanguage[1017]")
 					   otherButton:nil
 					suppressionKey:nil
 				   suppressionText:nil];
@@ -1209,8 +1216,8 @@
 							action:@selector(onPurgeOfCloudDataRequestedCallback:withOriginalAlert:)
 							  body:TXTLS(@"iCloudSyncDeleteAllDataDialogMessage")
 							 title:TXTLS(@"iCloudSyncDeleteAllDataDialogTitle")
-					 defaultButton:TXTLS(@"CancelButton")
-				   alternateButton:TXTLS(@"ContinueButton")
+					 defaultButton:TXTLS(@"BasicLanguage[1009]")
+				   alternateButton:TXTLS(@"BasicLanguage[1017]")
 					   otherButton:nil
 					suppressionKey:nil
 				   suppressionText:nil];
@@ -1306,8 +1313,8 @@
 								 action:@selector(openPathToThemesCallback:withOriginalAlert:)
 								   body:TXTLS(dialogMessage)
 								  title:TXTLS(@"OpeningLocalStyleResourcesTitle")
-						  defaultButton:TXTLS(@"ContinueButton")
-						alternateButton:TXTLS(@"CancelButton")
+						  defaultButton:TXTLS(@"BasicLanguage[1017]")
+						alternateButton:TXTLS(@"BasicLanguage[1009]")
 							otherButton:TXTLS(copyButton)
 						 suppressionKey:nil
 						suppressionText:nil];
@@ -1327,8 +1334,8 @@
 										 action:@selector(openPathToThemesCallback:withOriginalAlert:)
 										   body:TXTLS(@"OpeningLocalCustomStyleResourcesCloudMessage")
 										  title:TXTLS(@"OpeningLocalStyleResourcesTitle")
-								  defaultButton:TXTLS(@"ContinueButton")
-								alternateButton:TXTLS(@"CancelButton")
+								  defaultButton:TXTLS(@"BasicLanguage[1017]")
+								alternateButton:TXTLS(@"BasicLanguage[1009]")
 									otherButton:TXTLS(@"OpeningLocalStyleResourcesCloudCopyButton")
 								 suppressionKey:nil
 								suppressionText:nil];
@@ -1380,7 +1387,7 @@
 	 current theme. */
 	if (self.tcopyStyleFilesProgressIndicator) {
 		[self.tcopyStyleFilesProgressIndicator stop];
-		self.tcopyStyleFilesProgressIndicator = nil;
+		 self.tcopyStyleFilesProgressIndicator = nil;
 		
 		[TPCPreferences performReloadActionForActionType:TPCPreferencesKeyReloadStyleWithTableViewsAction];
 		
@@ -1403,9 +1410,21 @@
 	[RZNotificationCenter() removeObserver:self name:TPCPreferencesCloudSyncUbiquitousContainerCacheWasRebuiltNotification object:nil];
 	[RZNotificationCenter() removeObserver:self name:TPCPreferencesCloudSyncDidChangeGlobalThemeNamePreferenceNotification object:nil];
 #endif
+
+	/* Before closing, move back to first pane so that the
+	 saved window state always has same frame. */
+	NSRect windowFrame = [self.window frame];
+
+	windowFrame.size.width = _preferencesWindowDefaultFrameWidth;
+	windowFrame.size.height = _preferencesWindowDefaultFrameHeight;
+
+	windowFrame.origin.y = ((NSMaxY(self.window.frame) - windowFrame.size.height) + 4);
+
+	[self.window setFrame:windowFrame display:NO animate:NO];
 	
 	[self.window saveWindowStateForClass:self.class];
 
+	/* Clean up highlight keywords. */
 	[TPCPreferences cleanUpHighlightKeywords];
 
 	if ([self.delegate respondsToSelector:@selector(preferencesDialogWillClose:)]) {

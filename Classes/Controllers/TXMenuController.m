@@ -314,11 +314,11 @@
 		case 652: // "Delete Channel"
 		{
 			if (_isQuery) {
-				[item setTitle:TXTLS(@"DeletePrivateMessageMenuItem")];
+				[item setTitle:TXTLS(@"BasicLanguage[1025]")];
 				
 				return _disableInSheet(YES);
 			} else {
-				[item setTitle:TXTLS(@"DeleteChannelMenuItem")];
+				[item setTitle:TXTLS(@"BasicLanguage[1024]")];
 				
 				return _disableInSheet(_isChannel);
 			}
@@ -383,25 +383,25 @@
 				switch (keyAction) {
 					case TXCommandWKeyCloseWindowAction:
 					{
-						[item setTitle:TXTLS(@"CmdWShortcutCloseWindowType")];
+						[item setTitle:TXTLS(@"BasicLanguage[1013]")];
 
 						break;
 					}
 					case TXCommandWKeyPartChannelAction:
 					{
 						if (_isClient) {
-							[item setTitle:TXTLS(@"CmdWShortcutCloseWindowType")];
+							[item setTitle:TXTLS(@"BasicLanguage[1013]")];
 
 							return NO;
 						} else {
 							if (_isChannel) {
-								[item setTitle:TXTLS(@"CmdWShortcutLeaveChannelType")];
+								[item setTitle:TXTLS(@"BasicLanguage[1015]")];
 								
 								if (_notActive) {
 									return NO;
 								}
 							} else {
-								[item setTitle:TXTLS(@"CmdWShortcutClosePrivateMessageType")];
+								[item setTitle:TXTLS(@"BasicLanguage[1012]")];
 							}
 						}
 						
@@ -409,7 +409,7 @@
 					}
 					case TXCommandWKeyDisconnectAction:
 					{
-						[item setTitle:TXTFLS(@"CmdWShortcutDisconnectServerType", [u altNetworkName])];
+						[item setTitle:TXTFLS(@"BasicLanguage[1014]", [u altNetworkName])];
 						
 						if (_notConnected) {
 							return NO;
@@ -419,13 +419,13 @@
 					}
 					case TXCommandWKeyTerminateAction:
 					{
-						[item setTitle:TXTLS(@"CmdWShortcutQuitApplicationType")];
+						[item setTitle:TXTLS(@"BasicLanguage[1016]")];
 						
 						break;
 					}
 				}
 			} else {
-				[item setTitle:TXTLS(@"CmdWShortcutCloseWindowType")];
+				[item setTitle:TXTLS(@"BasicLanguage[1013]")];
 			}
 			
 			return YES;
@@ -743,10 +743,10 @@
 
 	TVCInputPromptDialog *dialog = [TVCInputPromptDialog new];
 
-	[dialog alertWithMessageTitle:TXTLS(@"FindSearchPanelPromptTitle")
-					defaultButton:TXTLS(@"FindSearchPanelPromptButton")
-				  alternateButton:TXTLS(@"CancelButton")
-				  informativeText:TXTLS(@"FindSearchPanelPromptMessage")
+	[dialog alertWithMessageTitle:TXTLS(@"BasicLanguage[1026][3]")
+					defaultButton:TXTLS(@"BasicLanguage[1026][1]")
+				  alternateButton:TXTLS(@"BasicLanguage[1009]")
+				  informativeText:TXTLS(@"BasicLanguage[1026][2]")
 				 defaultUserInput:self.currentSearchPhrase
 				  completionBlock:^(BOOL defaultButtonClicked, NSString *resultString) {
 					  if (defaultButtonClicked) {
@@ -1159,7 +1159,7 @@
 	BOOL result = [TLOPopupPrompts dialogWindowWithQuestion:TXTLS(warningToken)
 													  title:TXTLS(@"ServerDeletePromptTitle")
 											  defaultButton:TXTLS(@"OkButton") 
-											alternateButton:TXTLS(@"CancelButton")
+											alternateButton:TXTLS(@"BasicLanguage[1009]")
 											 suppressionKey:nil
 											suppressionText:nil];
 	
@@ -1428,10 +1428,10 @@
 	}
 	
 	if (_isChannel) {
-		BOOL result = [TLOPopupPrompts dialogWindowWithQuestion:TXTLS(@"ChannelDeletePromptMessage") 
-														  title:TXTLS(@"ChannelDeletePromptTitle") 
+		BOOL result = [TLOPopupPrompts dialogWindowWithQuestion:TXTLS(@"BasicLanguage[1010][1]")
+														  title:TXTLS(@"BasicLanguage[1010][2]") 
 												  defaultButton:TXTLS(@"OkButton") 
-												alternateButton:TXTLS(@"CancelButton")
+												alternateButton:TXTLS(@"BasicLanguage[1009]")
 												 suppressionKey:@"delete_channel"
 												suppressionText:nil];
 		
@@ -1501,12 +1501,12 @@
 		[c updateConfig:sender.config];
 
 		if (oldKeyEmpty && newKeyEmpty == NO) {
-			[c.client printDebugInformation:TXTLS(@"BlowfishEncryptionStarted") channel:c];
+			[c.client printDebugInformation:TXTLS(@"BasicLanguage[1003]") channel:c];
 		} else if (oldKeyEmpty == NO && newKeyEmpty) {
-			[c.client printDebugInformation:TXTLS(@"BlowfishEncryptionStopped") channel:c];
+			[c.client printDebugInformation:TXTLS(@"BasicLanguage[1004]") channel:c];
 		} else if (oldKeyEmpty == NO && newKeyEmpty == NO) {
 			if (NSObjectsAreEqual(oldKey, newKey) == NO) {
-				[c.client printDebugInformation:TXTLS(@"BlowfishEncryptionKeyChanged") channel:c];
+				[c.client printDebugInformation:TXTLS(@"BasicLanguage[1002]") channel:c];
 			}
 		}
 	}
@@ -2161,7 +2161,7 @@
 
 	[dialog alertWithMessageTitle:TXTLS(@"SetUserVhostPromptTitle")
 					defaultButton:TXTLS(@"OkButton")
-				  alternateButton:TXTLS(@"CancelButton")
+				  alternateButton:TXTLS(@"BasicLanguage[1009]")
 				  informativeText:TXTLS(@"SetUserVhostPromptMessage")
 				 defaultUserInput:nil
 				  completionBlock:^(BOOL defaultButtonClicked, NSString *resultString) {
